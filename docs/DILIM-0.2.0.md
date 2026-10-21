@@ -13,6 +13,7 @@ Validation on Windows x64:
 - Actual Setup payload sandbox: install, update and uninstall passed; settings, foreign files and a separate upstream installation survived.
 - Windows calculated the modern extension family as `Dilim.ExplorerMenu_8z99cddef50t0`.
 - Turkish catalogue render was visually inspected: Dilim title/icon, no studio subtitle or personal-website button.
+- Clean per-user installation exposed MSI error 1619 when opening an engine archive directly from the application cache. Verified MSI packages are now staged in the Windows temporary directory before administrative extraction. The production installer subsequently installed and ran both 7-Zip and FFmpeg from the normal LocalAppData engine root; all 37 installer/runtime tests passed again.
 
 Earlier conversion-parity evidence is in DILIM-VALIDATION.md. Physical CD/DVD extraction remains unverified and outside the owner's usage. The whole upstream engine suite is not claimed green; known OFD failures are recorded in DILIM-INITIAL-VALIDATION.md.
 

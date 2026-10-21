@@ -334,31 +334,41 @@ public sealed class EngineInstaller
         if (!OperatingSystem.IsWindows())
             throw new PlatformNotSupportedException($"The {id} package is a Windows installer.");
         Directory.CreateDirectory(target);
-        // msiexec parses its own command line: the property value must be quoted as TARGETDIR="...", so the
-        // argument list escaping of ProcessRunner cannot be used here.
-        using var process = Process.Start(new ProcessStartInfo("msiexec.exe", $"/a \"{msi}\" /qn /l*v \"{log}\" TARGETDIR=\"{target}\"")
-        {
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        }) ?? throw new InvalidOperationException("msiexec could not be started.");
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(MsiTimeout);
+        // The MSI service may not be able to open a per-user app cache. Stage the verified package in TEMP.
+        var stagedMsi = Path.Combine(Path.GetTempPath(), $"Dilim-engine-{Guid.NewGuid():N}.msi");
+        File.Copy(msi, stagedMsi);
         try
         {
-            await process.WaitForExitAsync(timeout.Token);
-        }
-        catch (OperationCanceledException)
-        {
-            process.Kill(entireProcessTree: true);
-            throw;
-        }
-        if (process.ExitCode != 0)
-        {
-            throw new InvalidOperationException(process.ExitCode switch
+            // msiexec parses its own command line: the property value must be quoted as TARGETDIR="...", so the
+            // argument list escaping of ProcessRunner cannot be used here.
+            using var process = Process.Start(new ProcessStartInfo("msiexec.exe", $"/a \"{stagedMsi}\" /qn /l*v \"{log}\" TARGETDIR=\"{target}\"")
             {
-                1618 => "Another installation is running. Try again when it has finished.",
-                _ => $"Unpacking {id} failed (msiexec exit code {process.ExitCode}, log: {log}).",
-            });
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            }) ?? throw new InvalidOperationException("msiexec could not be started.");
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(MsiTimeout);
+            try
+            {
+                await process.WaitForExitAsync(timeout.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                process.Kill(entireProcessTree: true);
+                throw;
+            }
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException(process.ExitCode switch
+                {
+                    1618 => "Another installation is running. Try again when it has finished.",
+                    _ => $"Unpacking {id} failed (msiexec exit code {process.ExitCode}, log: {log}).",
+                });
+            }
+        }
+        finally
+        {
+            TryDelete(stagedMsi);
         }
     }
 
