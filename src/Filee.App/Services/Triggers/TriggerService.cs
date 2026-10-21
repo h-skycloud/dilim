@@ -63,7 +63,11 @@ public sealed class TriggerService : IDisposable
     /// <summary>The mouse wheel turned (up or down) while <see cref="WatchFlipKey"/> was on: flip the donut.</summary>
     public event EventHandler? FlipWheelTurned;
 
+    public event EventHandler? EscapePressed;
+
     private volatile bool _watchFlipKey;
+    private volatile bool _watchEscape;
+    public bool WatchEscape { get => _watchEscape; set => _watchEscape = value; }
     private volatile string? _flipKey = DonutSettings.DefaultFlipKey;
     private volatile bool _flipWheel = true;
     private bool _flipKeyDown; // hook thread only
@@ -93,6 +97,8 @@ public sealed class TriggerService : IDisposable
     /// <summary>A key went down or up (hook thread): the flip key's state is followed whether or not it is watched.</summary>
     private void OnKey(KeyCode code, bool down)
     {
+        if (down && (_watchFlipKey || _watchEscape) && code == KeyCode.VcEscape)
+            Post(() => EscapePressed?.Invoke(this, EventArgs.Empty));
         if (_flipKey is { } flip && string.Equals(KeyName(code), flip, StringComparison.OrdinalIgnoreCase))
             OnFlipKey(down);
     }
@@ -176,6 +182,11 @@ public sealed class TriggerService : IDisposable
             _hook.MouseMovedRelative += (_, e) => OnRelativeMove(e);
             _hook.KeyPressed += (_, e) =>
             {
+                if (_platform.CursorPosition is { } cursor)
+                {
+                    LastCursor = cursor;
+                    _detector.SetCursor(cursor.X, cursor.Y);
+                }
                 OnKey(e.Data.KeyCode, down: true);
                 _detector.KeyDown(KeyName(e.Data.KeyCode), Map(e.RawEvent.Mask));
             };

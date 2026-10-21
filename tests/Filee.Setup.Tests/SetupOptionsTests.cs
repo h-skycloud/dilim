@@ -62,7 +62,7 @@ public class SetupOptionsTests
     [Fact]
     public void Scope_portable_and_logging()
     {
-        Assert.Equal(InstallScope.Machine, SetupOptions.Parse([]).Scope);
+        Assert.Equal(InstallScope.User, SetupOptions.Parse([]).Scope);
         Assert.Equal(InstallScope.Machine, SetupOptions.Parse(["/CURRENTUSER", "/ALLUSERS"]).Scope);
         Assert.True(SetupOptions.Parse(["/PORTABLE=1"]).Portable);
         Assert.False(SetupOptions.Parse(["/PORTABLE=0"]).Portable);
@@ -178,7 +178,7 @@ public class SetupTasksTests
     {
         var tasks = SetupTasks.FromCommandLine(null, null);
         Assert.Equal(SetupTasks.Defaults, tasks);
-        Assert.Equal(@"contextmenu,contextmenu\top,startup,cli", tasks.ToInnoString());
+        Assert.Equal("contextmenu", tasks.ToInnoString());
     }
 
     [Fact]
@@ -196,10 +196,10 @@ public class SetupTasksTests
     [Fact]
     public void Merge_tasks_change_the_defaults()
     {
-        Assert.Equal(new SetupTasks(true, true, false, true, true), SetupTasks.FromCommandLine(null, "desktopicon,!startup"));
+        Assert.Equal(new SetupTasks(true, false, false, false, true), SetupTasks.FromCommandLine(null, "desktopicon,!startup"));
         // Unticking a parent unticks its children.
-        Assert.Equal(new SetupTasks(false, false, true, true, false), SetupTasks.FromCommandLine(null, "!contextmenu"));
-        Assert.Equal(new SetupTasks(true, false, true, true, false), SetupTasks.FromCommandLine(null, @"!contextmenu\top"));
+        Assert.Equal(new SetupTasks(false, false, false, false, false), SetupTasks.FromCommandLine(null, "!contextmenu"));
+        Assert.Equal(new SetupTasks(true, false, false, false, false), SetupTasks.FromCommandLine(null, @"!contextmenu\top"));
         Assert.Equal(new SetupTasks(false, false, false, true, false), SetupTasks.FromCommandLine("cli", "!desktopicon"));
     }
 

@@ -37,6 +37,10 @@
       </StackPanel>
     </Border>
 
+    <StackPanel Spacing="6">
+      <TextBlock Classes="label" Text="{DynamicResource general.parallel_conversions}" />
+      <NumericUpDown Minimum="1" Maximum="64" Value="{Binding MaximumParallelConversions}" MaxWidth="240" HorizontalAlignment="Left" />
+    </StackPanel>
     <!-- Where presets set to "Default" save (AppSettings.DefaultOutput). -->
     <Border Classes="card">
       <StackPanel Spacing="10">

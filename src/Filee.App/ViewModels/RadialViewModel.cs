@@ -65,6 +65,7 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
 
     /// <summary>Files the donut will convert (empty while waiting for a drag to enter).</summary>
     public IReadOnlyList<string> Files { get; private set; } = [];
+    public PieMode Mode { get; private set; }
 
     /// <summary>Presets in slice order.</summary>
     public IReadOnlyList<Preset> Presets { get; private set; } = [];
@@ -124,8 +125,9 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
     public bool HasFiles => Files.Count > 0;
 
     /// <summary>Drag mode before any file entered: an empty ring saying "Bring files here".</summary>
-    public void ResetForDrag()
+    public void ResetForDrag(PieMode mode = PieMode.Convert)
     {
+        Mode = mode;
         IsClickMode = false;
         Files = [];
         ApplyAppearance();
@@ -143,8 +145,9 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
     /// Fills the donut for the given files, on its front face, or on the back when <paramref name="backFace"/> and the
     /// back has a slice for them (the same files again after a preset was edited).
     /// </summary>
-    public void Load(IReadOnlyList<string> files, bool clickMode, bool backFace = false)
+    public void Load(IReadOnlyList<string> files, bool clickMode, bool backFace = false, PieMode? mode = null)
     {
+        if (mode is { } selectedMode) Mode = selectedMode;
         IsClickMode = clickMode;
         Files = files;
         DonutOpacity = 1;
@@ -154,8 +157,11 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
         var profile = ProfileSelector.Select(store.Profiles, files);
         var formats = ProfileSelector.DetectFormats(files);
         // Both faces follow the same rule: a slice that can't convert these files is greyed out and says why.
-        _front = BuildFace(profile?.PresetIds ?? [], formats);
-        (_back, _backIds, _formats) = (null, [.. profile?.BackPresetIds ?? []], formats);
+        var tools = Mode == PieMode.Actions ? DilimTools.Actions.Select(DilimTools.Make).ToArray()
+            : Mode == PieMode.Tools ? DilimTools.For(formats, files.Count) : [];
+        _transient = tools.ToDictionary(p => p.Id);
+        _front = BuildFace(Mode == PieMode.Convert ? profile?.PresetIds ?? [] : tools.Take(6).Select(p => p.Id), formats);
+        (_back, _backIds, _formats) = (null, Mode == PieMode.Convert ? [.. profile?.BackPresetIds ?? []] : [.. tools.Skip(6).Select(p => p.Id)], formats);
         var load = ++_loads;
         if (backFace)
         {
@@ -219,10 +225,13 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
 
     private bool HasGroups(IEnumerable<string> presetIds) => presetIds.Any(id => store.FindPreset(id)?.IsGroup == true);
 
+    private Dictionary<string, Preset> _transient = [];
+    private Preset? FindPreset(string id) => _transient.GetValueOrDefault(id) ?? store.FindPreset(id);
+
     private Face BuildFace(IEnumerable<string> presetIds, IReadOnlyList<FileFormat> formats)
     {
         var presets = presetIds
-            .Select(store.FindPreset)
+            .Select(FindPreset)
             .OfType<Preset>()
             .ToList();
 
@@ -238,7 +247,7 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
             {
                 Id = p.Id,
                 // On a group's ring the group's name gives the context: "Rotate" → Left / Right / 180°.
-                Label = caption ? loc.DisplayName(p) : loc.RingName(p),
+                Label = caption && p.ToolId is null ? loc.DisplayName(p) : loc.RingName(p),
                 Caption = !caption ? null
                     : p.TargetFormat == BuiltInData.SameAsSource
                         ? string.Join("/", formats.Select(f => f.DisplayName).Take(2))

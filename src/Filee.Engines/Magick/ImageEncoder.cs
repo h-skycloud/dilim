@@ -254,6 +254,15 @@ internal static class ImageEncoder
                 image.Resize((uint)options.Width, (uint)Math.Max(1, Math.Round(image.Height * (double)options.Width / image.Width)));
                 break;
         }
+        if (options.ClampPowerOfTwo)
+        {
+            var edge = 1u;
+            var limit = Math.Min(image.Width, image.Height);
+            while (edge <= limit / 2) edge *= 2;
+            image.Resize(new MagickGeometry(edge, edge) { IgnoreAspectRatio = true });
+        }
+        if (options.MaximumSize > 0)
+            image.Resize(new MagickGeometry(Math.Min(image.Width, (uint)options.MaximumSize), Math.Min(image.Height, (uint)options.MaximumSize)) { IgnoreAspectRatio = true });
         FitFormat(image, targetFormat);
 
         // Before grayscale (a blue signature stays blue until then) and before alpha is flattened for JPG and co.

@@ -1,6 +1,7 @@
 // Preset list + the shared PresetEditorView on the right.
 
 using System.Collections.ObjectModel;
+using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Filee.App.Services;
@@ -46,10 +47,56 @@ public sealed partial class PresetsPageViewModel : ObservableObject, IFitsWindow
         // Groups and tools convert nothing: they live on the donut only (Settings → Toolbar).
         foreach (var preset in store.Presets.Where(p => !p.IsGroup && !p.IsTool))
             Presets.Add(new PresetListItem(preset, loc));
+        RefreshFolders();
         SelectedPreset = Presets.FirstOrDefault();
     }
 
     public ObservableCollection<PresetListItem> Presets { get; } = [];
+    public ObservableCollection<Choice<string>> Folders { get; } = [];
+    [ObservableProperty] private Choice<string>? _selectedFolder;
+    partial void OnSelectedFolderChanged(Choice<string>? value)
+    {
+        VisiblePresets.Predicate = item => string.IsNullOrEmpty(value?.Value) || item.Preset.Folder == value.Value;
+    }
+
+    private void RefreshFolders()
+    {
+        var selected = SelectedFolder?.Value;
+        Folders.Clear();
+        Folders.Add(new("", _loc["presets.all_folders"]));
+        foreach (var folder in Presets.Select(p => p.Preset.Folder).Where(s => s.Length > 0).Distinct().Order()) Folders.Add(new(folder, folder));
+        SelectedFolder = Folders.FirstOrDefault(f => f.Value == selected) ?? Folders[0];
+    }
+
+    [RelayCommand]
+    private async Task ImportFileConverter()
+    {
+        if (_windows.Main is not { } owner) return;
+        var files = await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = _loc["presets.import_fileconverter"],
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType("FileConverter XML") { Patterns = ["*.xml"] }],
+        });
+        if (files.Count == 0 || files[0].TryGetLocalPath() is not { } path) return;
+        try
+        {
+            var result = FileConverterImport.Read(path);
+            var added = 0;
+            foreach (var preset in result.Presets.Where(p => _store.FindPreset(p.Id) is null))
+            {
+                _store.Presets.Add(preset);
+                Presets.Add(new PresetListItem(preset, _loc));
+                added++;
+            }
+            _store.SaveLibrary();
+            RefreshFolders();
+            var report = Path.Combine(_store.Directory, "fileconverter-import-report.txt");
+            await File.WriteAllLinesAsync(report, result.Warnings.Prepend($"Imported {added} of {result.Presets.Count} presets. Existing presets were retained. Source actions default to Keep."));
+            await _windows.MessageAsync(owner, _loc.Format("presets.imported_fileconverter", added, result.Warnings.Count, report));
+        }
+        catch (Exception ex) { await _windows.MessageAsync(owner, ex.Message); }
+    }
 
     /// <summary>The presets the search box above the list lets through (name or target format).</summary>
     public FilteredList<PresetListItem> VisiblePresets { get; }
@@ -75,6 +122,7 @@ public sealed partial class PresetsPageViewModel : ObservableObject, IFitsWindow
             return;
         _store.SaveLibrary();
         SelectedPreset.Refresh(_loc);
+        RefreshFolders();
         SavedMessage = "✓";
     }
 
@@ -120,6 +168,7 @@ public sealed partial class PresetsPageViewModel : ObservableObject, IFitsWindow
         // Clear the search filter first so the new preset is visible regardless of what was typed.
         Search = "";
         Presets.Add(item);
+        RefreshFolders();
         SelectedPreset = item;
     }
 }

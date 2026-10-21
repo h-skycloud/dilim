@@ -19,8 +19,22 @@ public sealed class PresetAvailability(ConverterCatalog catalog, ILocalizer loc,
     /// </summary>
     public string? Check(Preset preset, IReadOnlyList<FileFormat> formats)
     {
+        if (preset.SourceExtensions.Count > 0 && formats.Count > 0 && !formats.Any(f => f.Extensions.Any(e => preset.SourceExtensions.Contains(e, StringComparer.OrdinalIgnoreCase))))
+            return loc["error.unsupported_source"];
         if (preset.IsTool)
         {
+            if (preset.ToolId is { } tool)
+            {
+                if (DilimTools.Actions.Contains(tool))
+                    return tool == "share" && !OperatingSystem.IsWindows() ? loc["tool.error.windows"] : null;
+                if (!DilimTools.For(formats, 1).Any(p => p.ToolId == tool)
+                    && !DilimTools.For(formats, 2).Any(p => p.ToolId == tool)) return loc["error.unsupported_source"];
+                var normalId = tool switch { "cropImage" => "tool-crop", "createPDF" => "to-pdf", "mergePDF" => "merge-pdf", "splitPDF" => "pdf-split", "extractArchive" => "extract", _ => null };
+                if (normalId is not null && BuiltInData.CreatePresets().FirstOrDefault(p => p.Id == normalId) is { } normal)
+                    return Check(normal, formats);
+                return DilimTools.NeedsMediaEngine(tool, formats) && !Filee.Engines.Dilim.ToolEngine.HasFfmpeg
+                    ? loc["tool.error.ffmpeg"] : null;
+            }
             if (formats.Count > 0 && formats.All(f => WritableSingleFrameRasterFormats.Contains(f.Id)))
                 return null;
             return loc["error.unsupported_source"];

@@ -16,7 +16,7 @@ public sealed class ThemeService(IPlatformServices platform)
 {
     /// <summary>Accent swatches offered in the Theme page.</summary>
     public static readonly IReadOnlyList<string> Swatches =
-        ["#7F77DD", "#1D9E75", "#D85A30", "#378ADD", "#D4537E", "#BA7517", "#639922", "#5F5E5A"];
+        ["#F35B28", "#7F77DD", "#1D9E75", "#378ADD", "#D4537E", "#BA7517", "#639922", "#5F5E5A"];
 
     /// <summary>
     /// theme.json colour names → the brushes in Styles/Soft.axaml they replace. Must cover exactly

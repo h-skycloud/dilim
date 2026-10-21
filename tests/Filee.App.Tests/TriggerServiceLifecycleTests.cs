@@ -165,6 +165,23 @@ public sealed class TriggerServiceLifecycleTests
         Assert.Equal(2, Settle(() => flips));
     }
 
+    [AvaloniaFact]
+    public void Escape_is_forwarded_only_while_a_donut_is_watched()
+    {
+        var provider = new DelayedProvider(); provider.AllowExit.Set();
+        using var service = Create(provider, () => { });
+        var closed = 0; service.EscapePressed += (_, _) => closed++;
+        service.Start(); Assert.True(SpinWait.SpinUntil(() => provider.Runs == 1, 2000));
+        provider.PostKey(EventType.KeyPressed, KeyCode.VcEscape);
+        Assert.Equal(0, Settle(() => closed));
+        service.WatchFlipKey = true; provider.PostKey(EventType.KeyPressed, KeyCode.VcEscape);
+        Assert.Equal(1, Settle(() => closed));
+        service.WatchFlipKey = false; provider.PostKey(EventType.KeyPressed, KeyCode.VcEscape);
+        Assert.Equal(1, Settle(() => closed));
+        service.WatchEscape = true; provider.PostKey(EventType.KeyPressed, KeyCode.VcEscape);
+        Assert.Equal(2, Settle(() => closed));
+    }
+
     /// <summary>Runs the work the hook posted to the UI thread for a moment, then reads the value.</summary>
     internal static T Settle<T>(Func<T> read)
     {

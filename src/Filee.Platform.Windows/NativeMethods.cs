@@ -26,6 +26,10 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     public static partial nint GetForegroundWindow();
 
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetCursorPos(out POINT point);
+
     public const uint ASFW_ANY = uint.MaxValue;
 
     [LibraryImport("user32.dll")]

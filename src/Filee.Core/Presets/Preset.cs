@@ -69,6 +69,9 @@ public sealed class PresetKindJsonConverter : LenientEnumJsonConverter<PresetKin
 /// </remarks>
 public sealed class Preset
 {
+    /// <summary>Optional user-defined folder in the preset library.</summary>
+    public string Folder { get; set; } = "";
+    public List<string> SourceExtensions { get; set; } = [];
     /// <summary>Stable identifier referenced by toolbar profiles. Never shown to users.</summary>
     public string Id { get; set; } = NewId();
 
@@ -158,12 +161,17 @@ public sealed class Preset
     [JsonIgnore]
     public bool IsTool => Kind == PresetKind.Tool;
 
+    /// <summary>Interactive Dilim tool or file action; null for the original crop tool.</summary>
+    public string? ToolId { get; set; }
+
     /// <summary>Creates a new random preset id.</summary>
     public static string NewId() => Guid.NewGuid().ToString("N")[..12];
 
     /// <summary>Deep copy, used by editors so changes can be cancelled.</summary>
     public Preset Clone() => new()
     {
+        Folder = Folder,
+        SourceExtensions = [.. SourceExtensions],
         Id = Id,
         Name = Name,
         NameKey = NameKey,
@@ -176,6 +184,7 @@ public sealed class Preset
         Trace = Trace.Clone(),
         Output = Output.Clone(),
         Kind = Kind,
+        ToolId = ToolId,
         SubPresetIds = [.. SubPresetIds],
     };
 }
@@ -250,6 +259,10 @@ public sealed class ImageOptions
 
     /// <summary>Target width in pixels when <see cref="Resize"/> is <see cref="ResizeMode.Width"/>.</summary>
     public int Width { get; set; } = 1200;
+
+    /// <summary>Independent width/height caps (zero disables); can match FileConverter's square clamp.</summary>
+    public int MaximumSize { get; set; }
+    public bool ClampPowerOfTwo { get; set; }
 
     /// <summary>Output DPI written into the file. <c>null</c> keeps the source value.</summary>
     public int? Dpi { get; set; }
@@ -399,6 +412,10 @@ public sealed class PdfOptions
     /// </summary>
     public bool CompressWithGhostscript { get; set; }
 
+    /// <summary>Optional picture resolution and JPEG quality overrides for PDF compression; null uses the level.</summary>
+    public int? CompressionDpi { get; set; }
+    public int? CompressionQuality { get; set; }
+
     public PdfOptions Clone() => (PdfOptions)MemberwiseClone();
 }
 
@@ -431,6 +448,38 @@ public enum MediaQuality
 public sealed class MediaOptions
 {
     public MediaQuality Quality { get; set; } = MediaQuality.Balanced;
+
+    /// <summary>Output frame rate; zero keeps the source (GIF/APNG use their quality default).</summary>
+    public double FrameRate { get; set; }
+
+    /// <summary>Scale video before the maximum-height limit, preserving aspect ratio.</summary>
+    public int ScalePercent { get; set; } = 100;
+
+    [JsonConverter(typeof(LenientEnumJsonConverter<ImageRotation>))]
+    public ImageRotation Rotation { get; set; }
+
+    /// <summary>Optional software encoder CRF. H.264/HEVC: 0–51; VP9/AV1: 0–63. Lower retains more detail.</summary>
+    public int? Crf { get; set; }
+
+    [JsonConverter(typeof(LenientEnumJsonConverter<VideoEncodingSpeed>))]
+    public VideoEncodingSpeed EncodingSpeed { get; set; }
+
+    /// <summary>Fine encoder controls use software so their values are honored on every graphics card.</summary>
+    [JsonIgnore]
+    public bool UsesSoftwareTuning => Crf.HasValue || EncodingSpeed != VideoEncodingSpeed.Default;
+
+    public double AudioSpeed { get; set; } = 1;
+    public double PitchSemitones { get; set; }
+    public AudioEncodingMode AudioEncoding { get; set; }
+    public int? AudioVbrQuality { get; set; }
+    public int? LegacyVideoQuality { get; set; }
+    public int ExactWidth { get; set; }
+    public int ExactHeight { get; set; }
+    public bool UseCustomArguments { get; set; }
+    public string FfmpegArguments { get; set; } = "";
+
+    [JsonIgnore]
+    public bool ChangesAudio => AudioSpeed != 1 || PitchSemitones != 0;
 
     /// <summary>Largest output height in pixels (e.g. 720); 0 keeps the source size. Never upscales.</summary>
     public int MaxHeight { get; set; }
@@ -516,6 +565,23 @@ public enum VideoCodec
     Av1,
 }
 
+/// <summary>Software encoder effort; Default preserves the codec's existing speed choice.</summary>
+public enum VideoEncodingSpeed
+{
+    Default,
+    UltraFast,
+    SuperFast,
+    VeryFast,
+    Faster,
+    Fast,
+    Medium,
+    Slow,
+    Slower,
+    VerySlow,
+}
+
+public enum AudioEncodingMode { Default, ConstantBitrate, VariableBitrate }
+
 /// <summary>Audio codec of an audio target. <see cref="Default"/> is the target's usual codec (AAC for M4A, ...).</summary>
 public enum AudioCodec
 {
@@ -551,6 +617,8 @@ public static class MediaCodecs
 
     /// <summary>Video targets whose usual codec is H.264 (the others have their container's own: VP9, MPEG-2, …).</summary>
     public static IReadOnlySet<string> H264Targets { get; } = new HashSet<string> { "mp4", "m4v", "mov", "mkv", "flv", "ts", "m2ts", "3gp", "3g2" };
+
+    public static bool SupportsVideoTuning(string target) => H264Targets.Contains(target) || target == "webm";
 
     /// <summary>
     /// True when <paramref name="target"/> with <paramref name="codec"/> is written as H.264 or HEVC, the codecs

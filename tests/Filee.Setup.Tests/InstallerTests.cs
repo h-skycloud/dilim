@@ -31,9 +31,9 @@ public class InstallerTests
         // Apps & Features: Inno Setup's key, with everything Windows shows.
         var registry = bench.Registry;
         string? Value(string name) => registry.Get(Hive.LocalMachine, Key, name)?.Text;
-        Assert.Equal("Filee", Value("DisplayName"));
+        Assert.Equal(SetupNames.AppName, Value("DisplayName"));
         Assert.Equal("2.0.0", Value("DisplayVersion"));
-        Assert.Equal("Filee contributors", Value("Publisher"));
+        Assert.Equal(SetupNames.Publisher, Value("Publisher"));
         Assert.Equal(Path.Combine(folder, "Filee.exe"), Value("DisplayIcon"));
         Assert.Equal(folder + "\\", Value("InstallLocation"));
         Assert.Equal($"\"{folder}\\uninstall.exe\"", Value("UninstallString"));
@@ -44,8 +44,8 @@ public class InstallerTests
         Assert.Equal(@"contextmenu,contextmenu\top,startup,cli", Value(SetupNames.TasksValue));
 
         // Start menu, PATH (REG_EXPAND_SZ), no desktop shortcut by default.
-        Assert.True(File.Exists(Path.Combine(bench.Paths.CommonStartMenu, "Filee.lnk")));
-        Assert.False(File.Exists(Path.Combine(bench.Paths.CommonDesktop, "Filee.lnk")));
+        Assert.True(File.Exists(Path.Combine(bench.Paths.CommonStartMenu, SetupNames.ShortcutName)));
+        Assert.False(File.Exists(Path.Combine(bench.Paths.CommonDesktop, SetupNames.ShortcutName)));
         var path = registry.Get(Hive.LocalMachine, SetupNames.MachineEnvironmentKey, "Path")!;
         Assert.True(path.Expandable);
         Assert.True(PathVariable.Contains(path.Text, Path.Combine(folder, "cli")));
@@ -106,7 +106,7 @@ public class InstallerTests
         registry.SetString(Hive.LocalMachine, Key, "DisplayVersion", "1.12.0");
         registry.SetString(Hive.LocalMachine, Key, "UninstallString", $"\"{folder}\\unins000.exe\"");
         registry.SetString(Hive.LocalMachine, SetupNames.MachineEnvironmentKey, "Path", @"%SystemRoot%\system32;" + folder + @"\cli", expandable: true);
-        temp.Write(Path.Combine(Path.GetRelativePath(temp.Path, bench.Paths.CommonDesktop), "Filee.lnk"), "old shortcut");
+        temp.Write(Path.Combine(Path.GetRelativePath(temp.Path, bench.Paths.CommonDesktop), SetupNames.ShortcutName), "old shortcut");
         bench.System.ExplorerMenuSupported = true;
         bench.System.MenuRegistered = true;
         bench.System.Running.Add(new RunningProgram(4242, Path.Combine(folder, "filee-cli.exe")));
@@ -139,7 +139,7 @@ public class InstallerTests
         // The user's choices stay: PATH once, the desktop shortcut, the top menu refreshed in place.
         var path = registry.Get(Hive.LocalMachine, SetupNames.MachineEnvironmentKey, "Path")!.Text!;
         Assert.Equal(@"%SystemRoot%\system32;" + folder + @"\cli", path);
-        Assert.True(File.Exists(Path.Combine(bench.Paths.CommonDesktop, "Filee.lnk")));
+        Assert.True(File.Exists(Path.Combine(bench.Paths.CommonDesktop, SetupNames.ShortcutName)));
         Assert.Contains($"register-menu {folder} False", bench.System.Calls);
         // Back to the tray, as before the update, with the new version's "What's new" slides.
         Assert.Equal("--background --whats-new", result.Launch!.Arguments);
@@ -173,8 +173,8 @@ public class InstallerTests
     public void Unticking_on_an_update_removes_the_desktop_icon_and_the_path_entry()
     {
         using var bench = new SetupBench();
-        Assert.True(bench.Install(bench.Choices(SetupTasks.Defaults with { DesktopIcon = true })).Succeeded);
-        var desktop = Path.Combine(bench.Paths.CommonDesktop, "Filee.lnk");
+        Assert.True(bench.Install(bench.Choices(SetupTasks.Defaults with { DesktopIcon = true, Cli = true })).Succeeded);
+        var desktop = Path.Combine(bench.Paths.CommonDesktop, SetupNames.ShortcutName);
         Assert.True(File.Exists(desktop));
         var previous = PreviousInstall.Find(bench.Registry, InstallScope.Machine)!;
         var tasks = previous.CurrentTasks(bench.Registry, bench.System, bench.Paths) with { DesktopIcon = false, Cli = false };
@@ -195,7 +195,7 @@ public class InstallerTests
             .ToDictionary(n => n, n => bench.Registry.Get(Hive.LocalMachine, Key, n)!.Value);
         File.WriteAllText(Path.Combine(bench.AppFolder, "Filee.exe"), "Filee 3");
         bench.MakeSetup("3.0.0");
-        File.Delete(Path.Combine(bench.Paths.CommonStartMenu, "Filee.lnk"));
+        File.Delete(Path.Combine(bench.Paths.CommonStartMenu, SetupNames.ShortcutName));
 
         // The Start menu shortcut can't be written: everything after the file swap fails.
         bench.System.OnCreateShortcut = _ => throw new IOException("Access denied (test)");
@@ -236,7 +236,7 @@ public class InstallerTests
     {
         using var bench = new SetupBench();
         Assert.True(bench.Install(bench.Choices() with { NoIcons = true }).Succeeded);
-        Assert.False(File.Exists(Path.Combine(bench.Paths.CommonStartMenu, "Filee.lnk")));
+        Assert.False(File.Exists(Path.Combine(bench.Paths.CommonStartMenu, SetupNames.ShortcutName)));
 
         using var portable = new SetupBench();
         var folder = portable.Temp.Sub("Portable Filee");
@@ -260,7 +260,7 @@ public class InstallerTests
         Assert.True(bench.Registry.KeyExists(Hive.CurrentUser, Key));
         Assert.False(bench.Registry.KeyExists(Hive.LocalMachine, Key));
         Assert.True(PathVariable.IsOnPath(bench.Registry, InstallScope.User, Path.Combine(folder, "cli")));
-        Assert.True(File.Exists(Path.Combine(bench.Paths.UserStartMenu, "Filee.lnk")));
+        Assert.True(File.Exists(Path.Combine(bench.Paths.UserStartMenu, SetupNames.ShortcutName)));
         Assert.Equal(InstallScope.User, InstallRecord.Read(folder)!.Scope);
         Assert.NotNull(PreviousInstall.Find(bench.Registry, InstallScope.User));
     }

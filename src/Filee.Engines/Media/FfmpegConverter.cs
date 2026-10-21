@@ -67,7 +67,7 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
     private static List<ConversionEdge> BuildEdges()
     {
         var videos = FormatRegistry.Known.Where(f => f.Category == FormatCategory.Video).Select(f => f.Id).ToList();
-        var audios = FormatRegistry.Known.Where(f => f.Category == FormatCategory.Audio).Select(f => f.Id);
+        var audios = FormatRegistry.Known.Where(f => f.Category == FormatCategory.Audio && f.Id != "cda").Select(f => f.Id);
         var videoTargets = MediaEncoding.VideoTargets.Keys.Append("png").ToList();
         return
         [

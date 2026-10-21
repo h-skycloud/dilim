@@ -3,6 +3,9 @@
 
 namespace Filee.Core.Settings;
 
+/// <summary>The workspace opened by a gesture.</summary>
+public enum PieMode { Convert, Tools, Actions }
+
 /// <summary>Modifier keys. Left/right variants are treated the same.</summary>
 [Flags]
 public enum ModifierKeys
@@ -52,6 +55,8 @@ public enum TriggerScope
 /// <summary>A user-configurable gesture that opens the donut toolbar.</summary>
 public sealed class TriggerGesture
 {
+    [System.Text.Json.Serialization.JsonConverter(typeof(Filee.Core.Presets.LenientEnumJsonConverter<PieMode>))]
+    public PieMode Menu { get; set; }
     public string Id { get; set; } = Guid.NewGuid().ToString("N")[..8];
     public bool Enabled { get; set; } = true;
     public TriggerKind Kind { get; set; } = TriggerKind.Drag;

@@ -64,6 +64,7 @@ public partial class App : Application
         var store = AppHost.Get<UserDataStore>();
         if (Program.PreloadedStore is null)
             store.Load();
+        DilimService.EnsureGestures(store);
 
         var loc = AppHost.Get<LocalizationService>();
         loc.Attach(this);
@@ -76,7 +77,9 @@ public partial class App : Application
         var triggers = AppHost.Get<TriggerService>();
         var radial = AppHost.Get<RadialController>();
         var platform = AppHost.Get<IPlatformServices>();
-        triggers.DragStarted += (_, e) => radial.ShowForDrag(e.X, e.Y);
+        if (OperatingSystem.IsWindows() && platform is Filee.Platform.Windows.WindowsPlatformServices windowsPlatform && Environment.GetEnvironmentVariable("FILEE_TRACE_GESTURES") == "1")
+            windowsPlatform.SelectionDiagnostics = message => log.LogInformation("{SelectionDiagnostic}", message);
+        triggers.DragStarted += (_, e) => radial.ShowForDrag(e.X, e.Y, e.Gesture?.Menu ?? PieMode.Convert);
         triggers.DragEnded += (_, _) => radial.OnDragGestureEnded();
         triggers.SelectionGesture += async (_, e) =>
         {
@@ -85,10 +88,11 @@ public partial class App : Application
             _selectionPending = true;
             try
             {
-                var files = OperatingSystem.IsMacOS()
-                    ? await Task.Run(platform.GetFileManagerSelection) : platform.GetFileManagerSelection();
+                var files = OperatingSystem.IsWindows() && platform is Filee.Platform.Windows.WindowsPlatformServices windowsSelection
+                    ? await windowsSelection.GetFileManagerSelectionAsync()
+                    : OperatingSystem.IsMacOS() ? await Task.Run(platform.GetFileManagerSelection) : platform.GetFileManagerSelection();
                 if (files.Count > 0 && !store.Settings.Paused)
-                    radial.ShowForFiles(e.X, e.Y, files);
+                    radial.ShowForFiles(e.X, e.Y, files, mode: e.Gesture?.Menu ?? PieMode.Convert);
                 else if (files.Count == 0 && Throttle.TryEnter("empty-selection", out var held))
                     log.LogInformation("The selection shortcut found no selected files in {Window}{Elevation}{Held}",
                         platform.DescribeForegroundWindow() is { Length: > 0 } window ? window : "the foreground window",
@@ -125,7 +129,8 @@ public partial class App : Application
 
         AppHost.Get<TrayService>().Create(this);
         AppHost.Get<WindowService>().EnsureToast();
-        AppHost.Get<ConversionService>().FeedbackDue += (_, _) => AppHost.Get<WindowService>().ShowFeedbackNotice();
+        if (UpdateService.HasRepository)
+            AppHost.Get<ConversionService>().FeedbackDue += (_, _) => AppHost.Get<WindowService>().ShowFeedbackNotice();
         AppHost.Get<WatchFolderService>().Start();
         // Originals of files from a browser that a crash kept from being deleted ("Save only the converted file").
         _ = Task.Run(() => Filee.Core.Web.WebDrop.DeleteStale(Filee.Core.Web.WebDrop.DefaultWorkRoot, TimeSpan.FromDays(1)));

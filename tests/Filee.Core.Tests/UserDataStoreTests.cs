@@ -7,6 +7,43 @@ namespace Filee.Core.Tests;
 public class UserDataStoreTests
 {
     [Fact]
+    public void Video_and_pdf_tuning_survive_library_save_and_old_presets_keep_original_defaults()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+        store.Presets.Add(new Preset
+        {
+            Id = "fine-video",
+            Name = "Fine video",
+            TargetFormat = "mp4",
+            Media = { Crf = 21, EncodingSpeed = VideoEncodingSpeed.Slow, FrameRate = 23.976, ScalePercent = 75, Rotation = ImageRotation.Left90 },
+            Pdf = { CompressionDpi = 120, CompressionQuality = 60 },
+        });
+        store.SaveLibrary();
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        var preset = reloaded.FindPreset("fine-video")!;
+        Assert.Equal(21, preset.Media.Crf);
+        Assert.Equal(VideoEncodingSpeed.Slow, preset.Media.EncodingSpeed);
+        Assert.Equal(23.976, preset.Media.FrameRate);
+        Assert.Equal(75, preset.Media.ScalePercent);
+        Assert.Equal(ImageRotation.Left90, preset.Media.Rotation);
+        Assert.Equal(120, preset.Pdf.CompressionDpi);
+        Assert.Equal(60, preset.Pdf.CompressionQuality);
+        var clone = preset.Clone();
+        clone.Media.ScalePercent = 50;
+        clone.Pdf.CompressionDpi = 72;
+        Assert.Equal(75, preset.Media.ScalePercent);
+        Assert.Equal(120, preset.Pdf.CompressionDpi);
+        var old = reloaded.FindPreset("to-mp4")!;
+        Assert.Equal(100, old.Media.ScalePercent);
+        Assert.Equal(0, old.Media.FrameRate);
+        Assert.Null(old.Media.Crf);
+        Assert.Equal(VideoEncodingSpeed.Default, old.Media.EncodingSpeed);
+    }
+
+    [Fact]
     public void Groups_keep_only_conversions_once_and_at_most_six()
     {
         using var dir = new TempDir();

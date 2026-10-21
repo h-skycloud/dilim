@@ -265,9 +265,9 @@ public sealed partial class SetupViewModel : ObservableObject
         if (await PickFolder(Folder) is { } picked)
         {
             // A folder of its own, like Inno Setup: picking "D:\Apps" installs into "D:\Apps\Filee".
-            Folder = Path.GetFileName(Path.TrimEndingDirectorySeparator(picked)).Equals("Filee", StringComparison.OrdinalIgnoreCase)
+            Folder = Path.GetFileName(Path.TrimEndingDirectorySeparator(picked)).Equals(Core.ProductIdentity.Name, StringComparison.OrdinalIgnoreCase)
                 ? picked
-                : Path.Combine(picked, "Filee");
+                : Path.Combine(picked, Core.ProductIdentity.Name);
         }
     }
 

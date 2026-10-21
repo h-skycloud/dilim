@@ -157,12 +157,31 @@ internal static class MediaEncoding
         if (target == "png")
             return [new FfmpegPass(PosterFrame(input, output, info), 1)];
         if (VideoTargets.TryGetValue(target, out var video))
-            return [new FfmpegPass(Video(input, output, target, video, options, info, encoders, hardware), 1)];
+            return [new FfmpegPass(CustomOptions(Video(input, output, target, video, options, info, encoders, hardware), options), 1)];
         if (AudioTargets.TryGetValue(target, out var audio))
-            return [new FfmpegPass(Audio(input, output, target, audio, options, info, cover), 1)];
+            return [new FfmpegPass(CustomOptions(Audio(input, output, target, audio, options, info, cover), options), 1)];
         if (SubtitleTargets.ContainsKey(target))
             return [new FfmpegPass(Subtitles(input, output, target, info), 1)];
         throw new NotSupportedException($"FFmpeg cannot write '{target}'.");
+    }
+
+    private static List<string> CustomOptions(List<string> args, MediaOptions options)
+    {
+        if (options.UseCustomArguments)
+        {
+            var extra = FfmpegOptions.Parse(options.FfmpegArguments);
+            args.InsertRange(args.Count - 1, extra);
+        }
+        return args;
+    }
+
+    private static IEnumerable<string> AudioProcessing(MediaOptions options)
+    {
+        if (!options.ChangesAudio) return [];
+        var speed = double.IsFinite(options.AudioSpeed) ? Math.Clamp(options.AudioSpeed, .25, 4) : 1;
+        var pitch = double.IsFinite(options.PitchSemitones) ? Math.Clamp(options.PitchSemitones, -24, 24) : 0;
+        return ["-af", "rubberband=tempo=" + speed.ToString("0.########", CultureInfo.InvariantCulture)
+            + ":pitch=" + Math.Pow(2, pitch / 12).ToString("0.################", CultureInfo.InvariantCulture)];
     }
 
     /// <summary>
@@ -216,7 +235,7 @@ internal static class MediaEncoding
     /// copied anyway.
     /// </summary>
     internal static string? HardwareCodec(string target, MediaOptions options, MediaInfo info) =>
-        options.HardwareEncoding && info.Video is { } video && VideoTargets.ContainsKey(target)
+        options.HardwareEncoding && !options.UsesSoftwareTuning && !options.UseCustomArguments && info.Video is { } video && VideoTargets.ContainsKey(target)
         && MediaCodecs.TakesHardwareEncoding(target, options.VideoCodec) && !CanCopyVideo(target, video, options)
             ? MediaCodecs.Effective(target, options.VideoCodec) == Core.Presets.VideoCodec.Hevc ? "hevc" : "h264"
             : null;
@@ -239,18 +258,19 @@ internal static class MediaEncoding
             if (video.Codec == "hevc" && target is "mp4" or "m4v" or "mov")
                 args.AddRange(["-tag:v", "hvc1"]);
         }
-        else if (hardware is not null && HardwareCodec(target, options, info) == hardware.Codec)
+        else if (hardware is not null && !options.UsesSoftwareTuning && HardwareCodec(target, options, info) == hardware.Codec)
         {
             // VA-API's device is a global option, so it goes before the input.
             args.InsertRange(Common.Length, HardwareVideo.InputArguments(hardware));
-            args.AddRange(["-vf", ScaleFilter(options.MaxHeight) + HardwareVideo.FilterSuffix(hardware, HardwareVideo.TenBit(hardware.Codec, video))]);
+            args.AddRange(["-vf", VideoFilter(options) + HardwareVideo.FilterSuffix(hardware, HardwareVideo.TenBit(hardware.Codec, video))]);
             args.AddRange(HardwareVideo.CodecArguments(hardware, target, options.Quality, video, options.MaxHeight));
         }
         else
         {
             var pal = IsPal(video.FrameRate);
-            args.AddRange(["-vf", target is "vob" or "dv" ? DvdOrDvFilter(video, pal) : ScaleFilter(options.MaxHeight)]);
-            args.AddRange(VideoCodecArguments(target, VideoEncoder(target, spec.VideoCodec!, options.VideoCodec, encoders), options.Quality, video, pal));
+            args.AddRange(["-vf", target is "vob" or "dv" ? DvdOrDvFilter(video, pal) : VideoFilter(options)]);
+            var codec = VideoEncoder(target, spec.VideoCodec!, options.VideoCodec, encoders);
+            args.AddRange(TuneVideoArguments(VideoCodecArguments(target, codec, options.Quality, video, pal), codec, options));
         }
 
         if (audio is null)
@@ -258,7 +278,11 @@ internal static class MediaEncoding
         else if (CanCopyAudio(target, audio, options))
             args.AddRange(["-c:a", "copy"]);
         else
+        {
             args.AddRange(AudioCodecArguments(target, spec.AudioCodec, options, audio, inVideo: true));
+            args.AddRange(ChannelAndRateArguments(target, spec.AudioCodec, options, audio.SampleRate));
+            args.AddRange(AudioProcessing(options));
+        }
 
         args.AddRange(MetadataArguments());
         args.AddRange(ContainerArguments(target));
@@ -295,7 +319,10 @@ internal static class MediaEncoding
     /// </summary>
     internal static bool CanCopyVideo(string target, VideoStreamInfo video, MediaOptions options)
     {
-        if (options.Quality == MediaQuality.Small || options.MaxHeight > 0 && video.DisplayHeight > Math.Max(16, options.MaxHeight)
+        if (options.Quality == MediaQuality.Small || options.FrameRate > 0 || options.ScalePercent != 100
+            || options.Rotation != ImageRotation.None || options.UsesSoftwareTuning || options.UseCustomArguments
+            || options.ExactWidth > 0 || options.ExactHeight > 0 || options.LegacyVideoQuality.HasValue
+            || options.MaxHeight > 0 && video.DisplayHeight > Math.Max(16, options.MaxHeight)
             || video.Codec is not { } codec || !Remuxable.TryGetValue(target, out var codecs))
             return false;
         var takes = MediaCodecs.Effective(target, options.VideoCodec) switch
@@ -337,7 +364,8 @@ internal static class MediaEncoding
     /// as they are.
     /// </summary>
     internal static bool CanCopyAudio(string target, AudioStreamInfo audio, MediaOptions options) =>
-        options.Quality != MediaQuality.Small && options.AudioBitrateKbps <= 0
+        options.Quality != MediaQuality.Small && options.AudioBitrateKbps <= 0 && !options.ChangesAudio
+        && !options.UseCustomArguments && options.AudioEncoding == AudioEncodingMode.Default && !options.AudioVbrQuality.HasValue
         && (options.AudioChannels is not (1 or 2) || options.AudioChannels == audio.Channels)
         && Remuxable.TryGetValue(target, out var codecs) && audio.Codec is { } codec && codecs.Audio.Contains(codec);
 
@@ -348,6 +376,62 @@ internal static class MediaEncoding
     internal static string ScaleFilter(int maxHeight) => maxHeight > 0
         ? $"scale=w=-2:h='trunc(min(ih,{Math.Max(16, maxHeight)})/2)*2'"
         : "scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'";
+
+    private static string TransformFilter(MediaOptions options)
+    {
+        var rotation = options.Rotation switch
+        {
+            ImageRotation.Right90 => "transpose=clock,",
+            ImageRotation.Left90 => "transpose=cclock,",
+            ImageRotation.Rotate180 => "hflip,vflip,",
+            _ => "",
+        };
+        var scale = Math.Clamp(options.ScalePercent, 1, 400);
+        return rotation + (scale == 100 ? "" : $"scale=w='max(2,trunc(iw*{scale}/100/2)*2)':h='max(2,trunc(ih*{scale}/100/2)*2)',");
+    }
+
+    internal static string VideoFilter(MediaOptions options) => TransformFilter(options)
+        + (options.ExactWidth > 0 || options.ExactHeight > 0
+            ? $"scale={(options.ExactWidth > 0 ? Math.Clamp(options.ExactWidth / 2 * 2, 2, 16384) : -2)}:{(options.ExactHeight > 0 ? Math.Clamp(options.ExactHeight / 2 * 2, 2, 16384) : -2)}," : "")
+        + ScaleFilter(options.MaxHeight)
+        + (double.IsFinite(options.FrameRate) && options.FrameRate > 0
+            ? ",fps=" + Math.Clamp(options.FrameRate, 1, 240).ToString("0.###", CultureInfo.InvariantCulture) : "");
+
+    private static List<string> TuneVideoArguments(IEnumerable<string> defaults, string codec, MediaOptions options)
+    {
+        var args = defaults.ToList();
+        void Replace(string flag, string value)
+        {
+            var index = args.IndexOf(flag);
+            if (index >= 0) args[index + 1] = value;
+        }
+        if (options.Crf is { } crf)
+            Replace("-crf", Text(Math.Clamp(crf, 0, codec is "libx264" or "libx265" ? 51 : 63)));
+        if (options.LegacyVideoQuality is { } q)
+            Replace("-q:v", Text(Math.Clamp(q, codec == "libtheora" ? 0 : 1, codec == "libtheora" ? 10 : 31)));
+        if (options.EncodingSpeed != VideoEncodingSpeed.Default)
+        {
+            var effort = options.EncodingSpeed switch
+            {
+                VideoEncodingSpeed.UltraFast => 0,
+                VideoEncodingSpeed.SuperFast => 1,
+                VideoEncodingSpeed.VeryFast => 2,
+                VideoEncodingSpeed.Faster => 3,
+                VideoEncodingSpeed.Fast => 4,
+                VideoEncodingSpeed.Slow => 6,
+                VideoEncodingSpeed.Slower => 7,
+                VideoEncodingSpeed.VerySlow => 8,
+                _ => 5,
+            };
+            if (codec is "libx264" or "libx265")
+                Replace("-preset", options.EncodingSpeed.ToString().ToLowerInvariant());
+            else if (codec == "libsvtav1")
+                Replace("-preset", Text(new[] { 13, 12, 11, 10, 9, 8, 6, 5, 4 }[effort]));
+            else if (codec is "libaom-av1" or "libvpx-vp9")
+                Replace("-cpu-used", Text(new[] { 8, 8, 7, 6, 5, 4, 2, 1, 0 }[effort]));
+        }
+        return args;
+    }
 
     /// <summary>
     /// DVD and DV frames are always 720×480 (NTSC) or 720×576 (PAL), shown at 4:3 or 16:9 through the pixel aspect.
@@ -525,6 +609,7 @@ internal static class MediaEncoding
         var codec = AudioEncoder(target, spec.AudioCodec, options);
         args.AddRange(AudioCodecArguments(target, codec, options, audio, inVideo: false));
         args.AddRange(ChannelAndRateArguments(target, codec, options, audio.SampleRate));
+        args.AddRange(AudioProcessing(options));
         args.AddRange(MetadataArguments(extras?.MetadataFile is null ? 0 : 1));
         args.AddRange(ContainerArguments(target));
         args.AddRange(["-f", spec.Muxer, "-progress", "pipe:1", output]);
@@ -596,6 +681,12 @@ internal static class MediaEncoding
         var channels = audio.Channels > 0 ? audio.Channels : 2;
         List<string> args = ["-c:a", codec];
 
+        if (options.AudioEncoding == AudioEncodingMode.VariableBitrate && codec is "libmp3lame" or "libvorbis" or "aac")
+        {
+            args.AddRange(["-q:a", Text(Math.Clamp(options.AudioVbrQuality ?? (codec == "libmp3lame" ? 2 : codec == "aac" ? 2 : 4), codec == "libvorbis" ? -2 : 0, codec == "libmp3lame" ? 9 : 10))]);
+            return args;
+        }
+
         switch (codec)
         {
             case "aac":
@@ -606,7 +697,7 @@ internal static class MediaEncoding
                 // Opus is transparent at about 128 kbit/s for stereo; 64 is still good for music.
                 args.AddRange(Bitrate(requested > 0 ? requested : Scaled(Choose(quality, 160, 128, 64), channels), 6, 256 * channels));
                 break;
-            case "libmp3lame" when requested > 0 || inVideo:
+            case "libmp3lame" when requested > 0 || inVideo || options.AudioEncoding == AudioEncodingMode.ConstantBitrate:
                 // Constant bitrate (variable-bitrate MP3 confuses AVI players' audio sync) from the MP3 bitrate table.
                 args.AddRange(Bitrate(Snap(requested > 0 ? requested : Choose(quality, 256, 192, 128), Mp3Bitrates), 32, 320));
                 break;
@@ -707,7 +798,7 @@ internal static class MediaEncoding
     {
         var video = info.Video ?? throw new InvalidOperationException("The file has no video stream.");
         var quality = options.Quality;
-        var chain = GifFrames(video, options.MaxHeight, fps: Choose(quality, 15, 12, 10), maxWidth: Choose(quality, 640, 480, 320), speed);
+        var chain = TransformFilter(options) + GifFrames(video, options.MaxHeight, fps: AnimationFrameRate(options), maxWidth: Choose(quality, 640, 480, 320), speed);
         var palette = Path.Combine(workDirectory, $"palette-{Guid.NewGuid():N}.png");
         var colors = Choose(quality, 256, 256, 128);
         // Error diffusion looks best; ordered (Bayer) dithering compresses much better because it does not flicker.
@@ -739,7 +830,7 @@ internal static class MediaEncoding
     {
         var video = info.Video ?? throw new InvalidOperationException("The file has no video stream.");
         var quality = options.Quality;
-        var chain = GifFrames(video, options.MaxHeight, fps: Choose(quality, 15, 12, 10), maxWidth: Choose(quality, 640, 480, 320), speed);
+        var chain = TransformFilter(options) + GifFrames(video, options.MaxHeight, fps: AnimationFrameRate(options), maxWidth: Choose(quality, 640, 480, 320), speed);
         return
         [
             .. Common, "-i", input, "-map", "0:V:0", "-vf", chain, "-an",
@@ -752,13 +843,16 @@ internal static class MediaEncoding
     /// timestamps before the frame rate is taken, so a faster clip keeps the frame rate by leaving frames out, and a
     /// slower one repeats frames where the video has too few.
     /// </summary>
-    private static string GifFrames(VideoStreamInfo video, int maxHeight, int fps, int maxWidth, double speed)
+    private static double AnimationFrameRate(MediaOptions options) => double.IsFinite(options.FrameRate) && options.FrameRate > 0
+        ? Math.Clamp(options.FrameRate, 1, 240) : Choose(options.Quality, 15, 12, 10);
+
+    private static string GifFrames(VideoStreamInfo video, int maxHeight, double fps, int maxWidth, double speed)
     {
         var height = maxHeight > 0 ? $"'min(ih,{Math.Max(16, maxHeight)})'" : "ih";
         var timing = double.IsFinite(speed) && speed is > 0 and not 1
             ? $"setpts=PTS/{speed.ToString("0.###", CultureInfo.InvariantCulture)},"
             : "";
-        return $"{timing}fps={fps},{SquarePixels(video)}scale=w='min(iw,{maxWidth})':h={height}:force_original_aspect_ratio=decrease:flags=lanczos";
+        return $"{timing}fps={fps.ToString("0.###", CultureInfo.InvariantCulture)},{SquarePixels(video)}scale=w='min(iw,{maxWidth})':h={height}:force_original_aspect_ratio=decrease:flags=lanczos";
     }
 
     /// <summary>Images have no pixel aspect ratio: anamorphic video (DV, DVD) is stretched to square pixels first.</summary>
@@ -804,18 +898,24 @@ internal static class MediaEncoding
             throw new NotSupportedException($"FFmpeg does not turn pictures into '{target}'.");
         var spec = VideoTargets[target];
         var quality = options.Quality == MediaQuality.Small ? MediaQuality.Balanced : MediaQuality.High;
+        var codec = VideoEncoder(target, spec.VideoCodec!, options.VideoCodec, null);
 
         List<string> args =
         [
             .. Common, "-flags2", "+icc_profiles", "-loop", "1", "-framerate", "30", "-i", input, "-map", "0:V:0",
             "-t", StillDuration.TotalSeconds.ToString(CultureInfo.InvariantCulture),
             "-vf", $"premultiply=inplace=1,{StillScale(picture, options.MaxHeight)}:out_color_matrix=bt709:out_range=tv,format=yuv420p",
-            .. VideoCodecArguments(target, spec.VideoCodec!, quality, picture, pal: false),
+            .. TuneVideoArguments(VideoCodecArguments(target, codec, quality, picture, pal: false), codec, options),
         ];
-        if (spec.VideoCodec == "libx264")
+        if (options.Rotation != ImageRotation.None || options.ScalePercent != 100 || options.FrameRate > 0 || options.ExactWidth > 0 || options.ExactHeight > 0)
+        {
+            var filter = args.IndexOf("-vf") + 1;
+            args[filter] += "," + VideoFilter(options);
+        }
+        if (codec == "libx264")
             args.AddRange(["-tune", "stillimage"]);
         args.AddRange(["-colorspace", "bt709", "-an", .. ContainerArguments(target), "-f", spec.Muxer, "-progress", "pipe:1", output]);
-        return [new FfmpegPass(args, 1)];
+        return [new FfmpegPass(CustomOptions(args, options), 1)];
     }
 
     /// <summary>

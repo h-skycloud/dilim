@@ -15,20 +15,20 @@
 #include <shlobj.h>
 #include <shlwapi.h>
 
-// {6DB0E670-807F-4D22-BE3F-20492D0F4AB1}; must match ExplorerMenuPackage.ClassId (C#) and the package manifest.
-static const CLSID kClsidCommand = {0x6db0e670, 0x807f, 0x4d22, {0xbe, 0x3f, 0x20, 0x49, 0x2d, 0x0f, 0x4a, 0xb1}};
+// {A6CED8AA-7815-4504-9BBC-BED1DA1199B2}; must match ExplorerMenuPackage.ClassId (C#) and the package manifest.
+static const CLSID kClsidCommand = {0xa6ced8aa, 0x7815, 0x4504, {0x9b, 0xbc, 0xbe, 0xd1, 0xda, 0x11, 0x99, 0xb2}};
 // Local copies of the interface and folder ids, so the DLL does not need libuuid.
 static const IID kIidUnknown = {0x00000000, 0x0000, 0x0000, {0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46}};
 static const IID kIidClassFactory = {0x00000001, 0x0000, 0x0000, {0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46}};
 static const IID kIidExplorerCommand = {0xa08ce4d0, 0xfa25, 0x44ab, {0xb5, 0x7c, 0xc7, 0xb1, 0xc3, 0x23, 0xe0, 0xb9}};
 static const KNOWNFOLDERID kFolderRoamingAppData = {0x3eb685db, 0x65f9, 0x4cf6, {0xa0, 0x3a, 0xe3, 0xef, 0x65, 0x72, 0x9f, 0x3d}};
 
-#define DEFAULT_TITLE L"Convert with Filee"
+#define DEFAULT_TITLE L"Convert with Dilim"
 // Written by the app into its data folder (%APPDATA%\Filee, which survives app updates) while the Explorer menu
 // setting is on; first line = the title in the UI language. No file = the entry is hidden, so the setting can switch
 // the entry off and on again without re-registering the package (which needs administrator rights).
 // Must match ExplorerMenuPackage.TitleFileName.
-#define TITLE_FILE L"Filee\\explorer-menu.txt"
+#define TITLE_FILE L"Dilim\\explorer-menu.txt"
 #define APP_EXE L"Filee.exe"
 #define LIST_PREFIX L"Filee-convert-"       // CommandLine.ListFilePrefix in the app
 // CreateProcess accepts at most 32767 characters; longer selections go through a list file.

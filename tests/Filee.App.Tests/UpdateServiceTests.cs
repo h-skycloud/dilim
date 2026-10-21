@@ -29,7 +29,7 @@ public class UpdateServiceTests
     [MemberData(nameof(OfflineFailures))]
     public async Task Update_check_without_internet_is_quiet(string failure)
     {
-        var updates = new UpdateService(NullLogger<UpdateService>.Instance, new FakeNetwork(failure));
+        var updates = new UpdateService(NullLogger<UpdateService>.Instance, new FakeNetwork(failure), "https://github.com/test/dilim");
 
         var found = await updates.CheckAsync(TestContext.Current.CancellationToken);
 
@@ -247,7 +247,7 @@ public class UpdateServiceTests
     public async Task Update_installs_the_release_that_is_latest_now_not_the_one_found_earlier()
     {
         // An earlier check found 9.9.9; 9.9.10 came out before Update was pressed.
-        var updates = new UpdateService(NullLogger<UpdateService>.Instance, new LatestRelease("v9.9.10"));
+        var updates = new UpdateService(NullLogger<UpdateService>.Instance, new LatestRelease("v9.9.10"), "https://github.com/test/dilim");
         updates.UseRelease(new UpdateService.ReleaseFile("Filee-9.9.9-win-Setup.exe", Base + "Filee-9.9.9-win-Setup.exe", 1),
             new UpdateService.ReleaseFile("Filee-9.9.9-SHA256SUMS.txt", Base + "Filee-9.9.9-SHA256SUMS.txt", 1));
         var announced = 0;
@@ -280,7 +280,6 @@ public class UpdateServiceTests
     [Fact]
     public void Download_page_is_the_latest_release()
     {
-        Assert.EndsWith("/releases/latest", UpdateService.LatestReleaseUrl);
-        Assert.StartsWith(UpdateService.RepositoryUrl.TrimEnd('/'), UpdateService.LatestReleaseUrl);
+        Assert.Equal(UpdateService.HasRepository ? UpdateService.RepositoryUrl.TrimEnd('/') + "/releases/latest" : Filee.Core.ProductIdentity.Website, UpdateService.LatestReleaseUrl);
     }
 }

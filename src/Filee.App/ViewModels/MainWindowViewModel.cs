@@ -7,8 +7,10 @@ using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Filee.App.Services;
+using Filee.App.Services.Triggers;
 using Filee.App.ViewModels.Pages;
 using Filee.Core.Localization;
+using Filee.Core.Settings;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Filee.App.ViewModels;
@@ -34,6 +36,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private readonly IServiceProvider _services;
     private readonly ILocalizer _loc;
+    private readonly UserDataStore _store;
+    private readonly TriggerService _triggers;
     private bool _disposed;
 
     /// <summary>The repository, for the GitHub button above the version.</summary>
@@ -43,11 +47,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         _services = services;
         _loc = loc;
+        _store = services.GetRequiredService<UserDataStore>();
+        _triggers = services.GetRequiredService<TriggerService>();
+        _store.SettingsChanged += OnStatusChanged;
+        _triggers.StatusChanged += OnStatusChanged;
         Updates = updates;
         updates.PropertyChanged += OnUpdatesChanged;
         RefreshVersionTexts();
         Items =
         [
+            new("catalog", "nav.catalog", "Icon.Shapes", typeof(CatalogPageViewModel)),
             new("home", "nav.home", "Icon.Home", typeof(HomePageViewModel)),
             new("general", "nav.general", "Icon.Settings", typeof(GeneralPageViewModel)),
             new("triggers", "nav.triggers", "Icon.Keyboard", typeof(TriggersPageViewModel)),
@@ -66,6 +75,28 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     public IReadOnlyList<NavItem> Items { get; }
+
+    /// <summary>Quick language controls mirror the persisted setting, including changes from General.</summary>
+    public bool IsEnglish => _loc.Language == "en";
+    public bool IsTurkish => _loc.Language == "tr";
+
+    /// <summary>The real global-hook state, rather than the prototype's decorative tray badge.</summary>
+    public string CaptureStatus => _store.Settings.Paused ? _loc["triggers.paused"]
+        : _triggers.IsRunning ? _loc["shell.capture_ready"] : _loc["shell.capture_unavailable"];
+
+    [RelayCommand]
+    private void ChangeLanguage(string code)
+    {
+        if (code is not ("en" or "tr"))
+            return;
+        _store.Settings.Language = code;
+        _store.SaveSettings();
+        // App normally applies SettingsChanged. Explicitly updating also keeps a standalone/test window usable.
+        if (_loc is LocalizationService language && language.NeedsUpdate(code))
+            language.SetLanguage(code);
+    }
+
+    private void OnStatusChanged(object? sender, EventArgs e) => OnPropertyChanged(nameof(CaptureStatus));
 
     /// <summary>Update state for the bottom of the navigation (version, "update available" button).</summary>
     public UpdateService Updates { get; }
@@ -99,7 +130,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         foreach (var item in Items)
             item.Refresh(_loc);
         RefreshVersionTexts();
-        CurrentPage = CreatePage(SelectedItem); // rebuild so code-generated labels update too
+        OnPropertyChanged(nameof(IsEnglish));
+        OnPropertyChanged(nameof(IsTurkish));
+        OnPropertyChanged(nameof(CaptureStatus));
+        if (CurrentPage is CatalogPageViewModel catalog)
+            catalog.RefreshLanguage();
+        else
+            CurrentPage = CreatePage(SelectedItem); // rebuild so code-generated labels update too
     }
 
     private void RefreshVersionTexts()
@@ -138,6 +175,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         _disposed = true;
         Updates.PropertyChanged -= OnUpdatesChanged;
+        _store.SettingsChanged -= OnStatusChanged;
+        _triggers.StatusChanged -= OnStatusChanged;
         _loc.LanguageChanged -= OnLanguageChanged;
         (CurrentPage as IDisposable)?.Dispose();
     }

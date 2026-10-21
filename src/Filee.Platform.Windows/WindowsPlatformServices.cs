@@ -13,8 +13,8 @@ namespace Filee.Platform.Windows;
 public sealed class WindowsPlatformServices : IPlatformServices
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string ContextMenuKey = @"Software\Classes\*\shell\Filee";
-    private const string AppName = "Filee";
+    private const string ContextMenuKey = @"Software\Classes\*\shell\Dilim";
+    private const string AppName = Core.ProductIdentity.Name;
 
     /// <summary>Window classes that belong to Explorer windows and the desktop.</summary>
     private static readonly HashSet<string> FileManagerClasses = new(StringComparer.Ordinal)
@@ -80,11 +80,28 @@ public sealed class WindowsPlatformServices : IPlatformServices
     public IReadOnlyList<string> GetFileManagerSelection()
     {
         var foreground = NativeMethods.GetForegroundWindow();
-        return foreground == 0 ? [] : SelectionOf(foreground);
+        return foreground == 0 ? [] : SelectionOf(foreground, SelectionDiagnostics);
+    }
+
+    public Action<string>? SelectionDiagnostics { get; set; }
+
+    /// <summary>Explorer can briefly report an empty selection just after activation. Retry without blocking the UI.</summary>
+    public async Task<IReadOnlyList<string>> GetFileManagerSelectionAsync()
+    {
+        var foreground = NativeMethods.GetForegroundWindow();
+        if (foreground == 0) return [];
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            if (NativeMethods.GetForegroundWindow() != foreground) return [];
+            var selected = SelectionOf(foreground, SelectionDiagnostics);
+            if (selected.Count > 0) return selected;
+            if (attempt < 2) await Task.Delay(100);
+        }
+        return [];
     }
 
     /// <summary>The selected files of an Explorer window; with tabs, of its active tab (see <see cref="ExplorerTabs"/>).</summary>
-    internal static IReadOnlyList<string> SelectionOf(nint foreground)
+    internal static IReadOnlyList<string> SelectionOf(nint foreground, Action<string>? trace = null)
     {
         var type = Type.GetTypeFromProgID("Shell.Application");
         if (type is null)
@@ -99,6 +116,7 @@ public sealed class WindowsPlatformServices : IPlatformServices
 
             // With Explorer tabs (Windows 11) every tab is an entry with the window's HWND: find the active one.
             var activeTab = ExplorerTabs.ActiveTabOf(foreground);
+            trace?.Invoke($"Explorer selection: foreground {foreground}, active tab {activeTab}, {count} shell entries");
             var found = new List<object?>(count);
             var entries = new List<ShellWindowEntry>(count);
             for (var i = 0; i < count; i++)
@@ -119,6 +137,7 @@ public sealed class WindowsPlatformServices : IPlatformServices
                 catch (Microsoft.CSharp.RuntimeBinder.RuntimeBinderException) { } // e.g. Internet Explorer windows
                 found.Add(window);
                 entries.Add(new ShellWindowEntry(topLevel, tab));
+                trace?.Invoke($"Explorer entry {i}: top {topLevel}, tab {tab}");
             }
 
             foreach (var i in ExplorerTabs.Candidates(entries, foreground, activeTab))
@@ -129,11 +148,13 @@ public sealed class WindowsPlatformServices : IPlatformServices
                 try
                 {
                     dynamic items = window.Document.SelectedItems();
+                    trace?.Invoke($"Explorer entry {i}: {items.Count} selected items");
                     var paths = new List<string>();
                     foreach (dynamic item in items)
                     {
                         string path = item.Path;
-                        if (File.Exists(path))
+                        trace?.Invoke($"Explorer item exists: file {File.Exists(path)}, directory {Directory.Exists(path)}");
+                        if (File.Exists(path) || Directory.Exists(path))
                             paths.Add(path);
                     }
                     if (paths.Count > 0)
@@ -166,6 +187,8 @@ public sealed class WindowsPlatformServices : IPlatformServices
     }
 
     public int SystemDragThreshold => Math.Max(2, NativeMethods.GetSystemMetrics(NativeMethods.SM_CXDRAG));
+
+    public (int X, int Y)? CursorPosition => NativeMethods.GetCursorPos(out var point) ? (point.X, point.Y) : null;
 
     public bool PrefersReducedMotion =>
         NativeMethods.SystemParametersInfo(NativeMethods.SPI_GETCLIENTAREAANIMATION, 0, out var enabled, 0) && !enabled;
@@ -273,7 +296,7 @@ public sealed class WindowsPlatformServices : IPlatformServices
     }
 
     private static string SendToShortcutPath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.SendTo), "Filee.lnk");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.SendTo), Core.ProductIdentity.Name + ".lnk");
 
     private static nint RootWindowAt(int x, int y)
     {

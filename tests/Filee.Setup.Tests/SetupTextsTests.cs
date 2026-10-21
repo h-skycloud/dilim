@@ -39,6 +39,8 @@ public partial class SetupTextsTests
     [InlineData(null, "pl-PL", "pl")]
     [InlineData(null, "hi-IN", "hi")]
     [InlineData(null, "ja-JP", "ja")]
+    [InlineData(null, "tr-TR", "tr")]
+    [InlineData("tr", "en-US", "tr")]
     [InlineData("xx", "de-DE", "en")]
     [InlineData("klingon", "pl-PL", "pl")]
     public void Languages_resolve_like_the_app_and_like_inno_setup(string? setting, string windows, string expected) =>

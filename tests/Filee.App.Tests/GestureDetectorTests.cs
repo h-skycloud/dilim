@@ -120,6 +120,18 @@ public class GestureDetectorTests
     }
 
     [Fact]
+    public void Key_chord_before_any_mouse_event_uses_queried_position_and_keeps_its_menu()
+    {
+        var detector = Create(new TriggerGesture { Menu = PieMode.Tools, Kind = TriggerKind.KeyChord, Modifiers = ModifierKeys.Ctrl | ModifierKeys.Alt, Key = "T" });
+        detector.ScopeFilter = (_, x, y) => x == 800 && y == 400;
+        (int X, int Y, PieMode Menu)? opened = null;
+        detector.KeyChordTriggered += (g, x, y) => opened = (x, y, g.Menu);
+        detector.SetCursor(800, 400);
+        detector.KeyDown("T", ModifierKeys.Ctrl | ModifierKeys.Alt);
+        Assert.Equal((800, 400, PieMode.Tools), opened);
+    }
+
+    [Fact]
     public void Hold_fires_when_timer_elapses_without_movement()
     {
         var detector = Create(new TriggerGesture { Kind = TriggerKind.Hold, Modifiers = ModifierKeys.Alt, Button = TriggerMouseButton.Middle });

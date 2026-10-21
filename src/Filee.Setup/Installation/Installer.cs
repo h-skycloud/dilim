@@ -260,13 +260,13 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
         {
             if (!File.Exists(startMenu))
                 undo.Push(("Start menu shortcut", () => File.Delete(startMenu)));
-            System.CreateShortcut(startMenu, exe, folder, "Filee");
+            System.CreateShortcut(startMenu, exe, folder, SetupNames.AppName);
         }
         if (choices.Tasks.DesktopIcon && !choices.NoIcons)
         {
             if (!File.Exists(desktop))
                 undo.Push(("desktop shortcut", () => File.Delete(desktop)));
-            System.CreateShortcut(desktop, exe, folder, "Filee");
+            System.CreateShortcut(desktop, exe, folder, SetupNames.AppName);
         }
         else if (update && File.Exists(desktop))
         {
@@ -305,8 +305,8 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
         Registry.SetString(hive, key, "UninstallString", SetupOptions.Quote(uninstaller));
         Registry.SetString(hive, key, "QuietUninstallString", SetupOptions.Quote(uninstaller) + " /VERYSILENT /SUPPRESSMSGBOXES /NORESTART");
         Registry.SetString(hive, key, "URLInfoAbout", repository);
-        Registry.SetString(hive, key, "HelpLink", repository + "/issues");
-        Registry.SetString(hive, key, "URLUpdateInfo", repository + "/releases");
+        Registry.SetString(hive, key, "HelpLink", repository.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase) ? repository + "/issues" : SetupInfo.WebsiteUrl);
+        Registry.SetString(hive, key, "URLUpdateInfo", repository.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase) ? repository + "/releases" : SetupInfo.WebsiteUrl);
         Registry.SetString(hive, key, "InstallDate", DateTime.Now.ToString("yyyyMMdd", global::System.Globalization.CultureInfo.InvariantCulture));
         Registry.SetNumber(hive, key, "NoModify", 1);
         Registry.SetNumber(hive, key, "NoRepair", 1);

@@ -90,6 +90,8 @@ public sealed class LocalizationService : ILocalizer
         var ui = Filee.Platform.MacOS.MacOSLocale.PreferredLanguage() ?? CultureInfo.InstalledUICulture.Name;
         if (ui.StartsWith("ja", StringComparison.OrdinalIgnoreCase))
             return "ja";
+        if (ui.StartsWith("tr", StringComparison.OrdinalIgnoreCase))
+            return "tr";
         if (ui.StartsWith("ko", StringComparison.OrdinalIgnoreCase))
             return "ko";
         if (ui.StartsWith("zh", StringComparison.OrdinalIgnoreCase))

@@ -155,6 +155,20 @@
           </StackPanel>
         </Grid>
         <!-- Two per row, whichever apply to the target: hidden ones leave no gap. -->
+        <UniformGrid Columns="2" ColumnSpacing="12" RowSpacing="10" IsVisible="{Binding ShowVideoTransforms}">
+          <StackPanel>
+            <TextBlock Classes="label" Text="{DynamicResource presets.video_fps}" />
+            <NumericUpDown Minimum="0" Maximum="240" Increment="1" FormatString="0.###" Value="{Binding FrameRate}" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="{DynamicResource presets.video_scale}" />
+            <NumericUpDown Minimum="1" Maximum="400" Value="{Binding VideoScalePercent}" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Classes="label" Text="{DynamicResource presets.rotation}" />
+            <ComboBox ItemsSource="{Binding Rotations}" SelectedItem="{Binding VideoRotation}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+        </UniformGrid>
         <UniformGrid Columns="2" ColumnSpacing="12" RowSpacing="10">
           <StackPanel IsVisible="{Binding ShowVideoCodec}">
             <TextBlock Classes="label" Text="{DynamicResource presets.video_codec}" />
@@ -187,6 +201,13 @@
         <StackPanel Spacing="2" IsVisible="{Binding ShowHardwareEncoding}">
           <CheckBox Content="{DynamicResource presets.hardware_encoding}" IsChecked="{Binding HardwareEncoding}" />
           <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0" Text="{DynamicResource presets.hardware_encoding_hint}" />
+        </StackPanel>
+        <StackPanel Spacing="8" IsVisible="{Binding ShowSoftwareTuning}">
+          <TextBlock Classes="label" Text="{DynamicResource presets.encoding_speed}" />
+          <ComboBox ItemsSource="{Binding EncodingSpeeds}" SelectedItem="{Binding EncodingSpeed}" HorizontalAlignment="Stretch" />
+          <CheckBox Content="{DynamicResource presets.custom_crf}" IsChecked="{Binding CustomCrf}" />
+          <NumericUpDown Minimum="0" Maximum="{Binding MaxCrf}" Value="{Binding Crf}" IsVisible="{Binding CustomCrf}" />
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource presets.video_tuning_hint}" />
         </StackPanel>
       </StackPanel>
     </Border>
@@ -262,8 +283,20 @@
           </Grid>
           <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource presets.pdf_compression_hint}" />
           <StackPanel Spacing="2" Margin="0,6,0,0" IsVisible="{Binding ShowPdfCompressionOptions}">
-            <CheckBox Content="{DynamicResource presets.pdf_ghostscript}" IsChecked="{Binding CompressWithGhostscript}" />
-            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0" Text="{DynamicResource presets.pdf_ghostscript_hint}" />
+            <CheckBox Content="{DynamicResource presets.custom_pdf_compression}" IsChecked="{Binding CustomPdfCompression}" />
+            <UniformGrid Columns="2" ColumnSpacing="12" IsVisible="{Binding CustomPdfCompression}">
+              <StackPanel>
+                <TextBlock Classes="label" Text="{DynamicResource presets.pdf_compression_dpi}" />
+                <NumericUpDown Minimum="36" Maximum="1200" Value="{Binding PdfCompressionDpi}" />
+              </StackPanel>
+              <StackPanel>
+                <TextBlock Classes="label" Text="{DynamicResource presets.quality}" />
+                <NumericUpDown Minimum="1" Maximum="100" Value="{Binding PdfCompressionQuality}" />
+              </StackPanel>
+            </UniformGrid>
+            <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource presets.custom_pdf_hint}" IsVisible="{Binding CustomPdfCompression}" />
+            <CheckBox Content="{DynamicResource presets.pdf_ghostscript}" IsChecked="{Binding CompressWithGhostscript}" IsVisible="{Binding !CustomPdfCompression}" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="28,0,0,0" Text="{DynamicResource presets.pdf_ghostscript_hint}" IsVisible="{Binding !CustomPdfCompression}" />
             <CheckBox Content="{DynamicResource presets.pdf_keep_metadata}" IsChecked="{Binding KeepMetadata}" />
           </StackPanel>
         </StackPanel>
@@ -311,6 +344,51 @@
       </StackPanel>
     </Border>
 
+    <StackPanel>
+      <TextBlock Classes="label" Text="{DynamicResource presets.folder}" />
+      <TextBox Text="{Binding Folder}" />
+    </StackPanel>
+    <Expander Header="{DynamicResource presets.advanced_image}" IsVisible="{Binding ShowImage}">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="label" Text="{DynamicResource presets.maximum_size}" />
+        <NumericUpDown Minimum="0" Maximum="32768" Value="{Binding MaximumSize}" />
+        <CheckBox Content="{DynamicResource presets.power_two}" IsChecked="{Binding ClampPowerOfTwo}" />
+        <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource presets.power_two_hint}" />
+      </StackPanel>
+    </Expander>
+    <Expander Header="{DynamicResource presets.advanced_media}" IsVisible="{Binding ShowAudioEffects}">
+      <StackPanel Spacing="10">
+        <TextBlock Classes="label" Text="{DynamicResource presets.audio_speed}" />
+        <NumericUpDown Minimum="0.25" Maximum="4" Increment="0.05" FormatString="0.##" Value="{Binding AudioSpeed}" />
+        <TextBlock Classes="label" Text="{DynamicResource presets.pitch}" />
+        <NumericUpDown Minimum="-24" Maximum="24" Increment="1" FormatString="0.##" Value="{Binding PitchSemitones}" />
+        <StackPanel Spacing="8" IsVisible="{Binding ShowAudioEncoding}">
+          <TextBlock Classes="label" Text="{DynamicResource presets.audio_encoding}" />
+          <ComboBox ItemsSource="{Binding AudioEncodings}" SelectedItem="{Binding AudioEncoding}" HorizontalAlignment="Stretch" />
+          <StackPanel IsVisible="{Binding ShowAudioVbrQuality}">
+            <CheckBox Content="{DynamicResource presets.vbr_quality}" IsChecked="{Binding UseAudioVbrQuality}" />
+            <NumericUpDown Minimum="{Binding MinAudioVbrQuality}" Maximum="{Binding MaxAudioVbrQuality}" Value="{Binding AudioVbrQuality}" IsVisible="{Binding UseAudioVbrQuality}" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Spacing="8" IsVisible="{Binding ShowLegacyVideoQuality}">
+          <CheckBox Content="{DynamicResource presets.legacy_quality}" IsChecked="{Binding UseLegacyVideoQuality}" />
+          <NumericUpDown Minimum="0" Maximum="31" Value="{Binding LegacyVideoQuality}" IsVisible="{Binding UseLegacyVideoQuality}" />
+        </StackPanel>
+        <StackPanel Spacing="8" IsVisible="{Binding ShowVideoTransforms}">
+          <TextBlock Classes="label" Text="{DynamicResource presets.exact_size}" TextWrapping="Wrap" />
+          <UniformGrid Columns="2" ColumnSpacing="12">
+            <NumericUpDown Minimum="0" Maximum="16384" Value="{Binding ExactWidth}" />
+            <NumericUpDown Minimum="0" Maximum="16384" Value="{Binding ExactHeight}" />
+          </UniformGrid>
+        </StackPanel>
+        <CheckBox Content="{DynamicResource presets.custom_ffmpeg}" IsChecked="{Binding UseCustomArguments}" />
+        <StackPanel Spacing="8" IsVisible="{Binding UseCustomArguments}">
+          <TextBox Text="{Binding FfmpegArguments}" TextWrapping="Wrap" MinHeight="80" />
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource presets.custom_ffmpeg_hint}" />
+          <TextBlock Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Text="{Binding OptionsError}" />
+        </StackPanel>
+      </StackPanel>
+    </Expander>
     <!-- Output -->
     <Border Classes="card" Padding="14">
       <StackPanel Spacing="10">
@@ -343,6 +421,11 @@
         </StackPanel>
         <CheckBox Content="{DynamicResource presets.keep_dates}" IsChecked="{Binding KeepDates}"
                   ToolTip.Tip="{DynamicResource presets.keep_dates_hint}" />
+        <TextBlock Classes="label" Text="{DynamicResource presets.source_action}" />
+        <ComboBox ItemsSource="{Binding SourceActions}" SelectedItem="{Binding SourceAction}" HorizontalAlignment="Stretch" />
+        <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource presets.source_action_hint}" />
+        <TextBlock Classes="label" Text="{DynamicResource presets.archive_originals}" />
+        <TextBox Text="{Binding ArchiveFolderName}" />
         <CheckBox Content="{DynamicResource presets.zip_result}" IsChecked="{Binding ZipResult}" IsVisible="{Binding ShowZipResult}"
                   ToolTip.Tip="{DynamicResource presets.zip_result_hint}" />
       </StackPanel>

@@ -21,7 +21,7 @@ public partial class LocalizationTests
     private static Dictionary<string, string> Load(string code) =>
         JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(I18nDirectory, code + ".json")))!;
 
-    public static TheoryData<string> Languages => new() { "es", "ja", "ko", "zh-CN", "pl", "hi", "ru" };
+    public static TheoryData<string> Languages => new() { "tr", "es", "ja", "ko", "zh-CN", "pl", "hi", "ru" };
 
     [Theory]
     [MemberData(nameof(Languages))]
@@ -65,6 +65,13 @@ public partial class LocalizationTests
     {
         Assert.Contains(("ru", "Русский"), LocalizationService.Languages);
         Assert.Equal("ru", LocalizationService.Resolve("RU"));
+    }
+
+    [Fact]
+    public void Turkish_is_offered_under_its_own_name()
+    {
+        Assert.Contains(("tr", "Türkçe"), LocalizationService.Languages);
+        Assert.Equal("tr", LocalizationService.Resolve("TR"));
     }
 
     [Fact]

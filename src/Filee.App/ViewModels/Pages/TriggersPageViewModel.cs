@@ -35,6 +35,8 @@ public sealed partial class TriggerGestureViewModel : ObservableObject
             .Select(s => new Choice<TriggerScope>(s, loc[s == TriggerScope.FileManager ? $"triggers.scope.{s}{platform}" : $"triggers.scope.{s}"]))
             .ToList();
         RecordLabel = loc["triggers.record"];
+        Menus = Enum.GetValues<PieMode>().Select(m => new Choice<PieMode>(m, loc["pie." + m])).ToArray();
+        Menu = Menus.First(m => m.Value == gesture.Menu);
         RecordingLabel = loc["triggers.recording"];
         SystemLabel = loc["triggers.threshold_system"];
 
@@ -53,6 +55,8 @@ public sealed partial class TriggerGestureViewModel : ObservableObject
     }
 
     public TriggerGesture Gesture => _gesture;
+    public IReadOnlyList<Choice<PieMode>> Menus { get; }
+    [ObservableProperty] private Choice<PieMode> _menu = null!;
     public IReadOnlyList<Choice<TriggerKind>> Kinds { get; }
     public IReadOnlyList<Choice<TriggerMouseButton>> Buttons { get; }
     public IReadOnlyList<Choice<TriggerScope>> Scopes { get; }
@@ -98,6 +102,7 @@ public sealed partial class TriggerGestureViewModel : ObservableObject
             return;
 
         _gesture.Enabled = Enabled;
+        _gesture.Menu = Menu.Value;
         _gesture.Kind = Kind.Value;
         _gesture.Modifiers = (Ctrl ? ModifierKeys.Ctrl : 0) | (Alt ? ModifierKeys.Alt : 0) |
                              (Shift ? ModifierKeys.Shift : 0) | (Meta ? ModifierKeys.Meta : 0);

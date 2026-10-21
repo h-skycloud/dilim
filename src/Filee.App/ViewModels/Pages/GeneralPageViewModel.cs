@@ -40,6 +40,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         _contextMenu = store.Settings.ContextMenuEnabled;
         _noHistory = !store.Settings.KeepHistory;
         _historyLimit = store.Settings.EffectiveHistoryLimit;
+        _maximumParallelConversions = store.Settings.MaximumParallelConversions;
         OutputLocations = new[] { OutputLocation.SameFolder, OutputLocation.Subfolder, OutputLocation.CustomFolder }
             .Select(v => new Choice<OutputLocation>(v, loc[$"presets.location.{v}"])).ToList();
         var output = store.Settings.DefaultOutput;
@@ -259,6 +260,8 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
 
     /// <summary>How many conversions the history keeps (<see cref="AppSettings.HistoryLimit"/>).</summary>
     [ObservableProperty] private int _historyLimit;
+    [ObservableProperty] private int _maximumParallelConversions;
+    partial void OnMaximumParallelConversionsChanged(int value) => Save(s => s.MaximumParallelConversions = Math.Clamp(value, 1, 64));
 
     partial void OnHistoryLimitChanged(int value) =>
         Save(s => s.HistoryLimit = Math.Clamp(value, AppSettings.MinHistoryLimit, AppSettings.MaxHistoryLimit));

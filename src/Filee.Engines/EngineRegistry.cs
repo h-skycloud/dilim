@@ -60,6 +60,7 @@ public static class EngineRegistry
         new SubtitleConverter(),
         new WicImageConverter(),
         new FfmpegConverter(loggers?.CreateLogger<FfmpegConverter>()),
+        new CdAudioConverter(),
         new CadConverter(),
         new ModelConverter(),
         new GeoConverter(),

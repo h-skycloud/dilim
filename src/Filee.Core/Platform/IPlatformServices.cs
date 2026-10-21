@@ -6,6 +6,9 @@ public interface IPlatformServices
     bool SupportsGlobalPointerGestures => true;
     bool SupportsSelectionShortcut => true;
 
+    /// <summary>Current global pointer position, when the platform can query it without a movement event.</summary>
+    (int X, int Y)? CursorPosition => null;
+
     /// <summary>
     /// False where mouse presses arrive without a position (Wayland reports them at (0, 0)), so the gesture has to
     /// start from the last known cursor estimate instead.

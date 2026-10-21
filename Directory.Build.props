@@ -14,13 +14,13 @@
          parameters of a member is fine (CS1573). -->
     <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
 
-    <Version>1.12.0</Version>
-    <Product>Filee</Product>
-    <Authors>Filee contributors</Authors>
-    <Copyright>Copyright (c) Filee contributors</Copyright>
+    <Version>0.2.0</Version>
+    <Product>Dilim</Product>
+    <Authors>Dilim contributors; Filee contributors</Authors>
+    <Copyright>Copyright (c) 2026 Dilim contributors and Filee contributors</Copyright>
 
     <!-- Single source of truth for the GitHub repository (used by the updater and the About page). -->
-    <FileeRepositoryUrl>https://github.com/KnifeLemon/Filee</FileeRepositoryUrl>
+    <FileeRepositoryUrl Condition="'$(FileeRepositoryUrl)' == ''">https://github.com/h-skycloud/dilim</FileeRepositoryUrl>
     <RepositoryUrl>$(FileeRepositoryUrl)</RepositoryUrl>
   </PropertyGroup>
 </Project>

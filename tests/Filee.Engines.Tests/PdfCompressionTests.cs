@@ -82,6 +82,22 @@ public class PdfCompressionTests(EngineFixture fx) : IClassFixture<EngineFixture
         return pdf.GetPages().Select(p => p.Text).ToList();
     }
 
+    [Fact]
+    public async Task Custom_resolution_and_quality_override_the_level_and_preserve_text()
+    {
+        var folder = fx.NewFolder();
+        var source = ReportPdf(folder);
+        var preset = Compress(PdfCompression.Print, ghostscript: true);
+        preset.Pdf.CompressionDpi = 100;
+        preset.Pdf.CompressionQuality = 40;
+        var job = await fx.ConvertAsync([source], preset);
+        AssertDone(job);
+        var output = Assert.Single(job.Outputs);
+        Assert.Equal(Texts(source), Texts(output));
+        Assert.All(Pictures(output), p => Assert.InRange(p.Width, 298, 302));
+        Assert.True(new FileInfo(output).Length < new FileInfo(source).Length);
+    }
+
     [Theory]
     [InlineData(PdfCompression.Screen, 216)]
     [InlineData(PdfCompression.Ebook, 450)]

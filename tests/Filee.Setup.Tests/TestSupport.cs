@@ -158,7 +158,7 @@ public sealed class SetupBench : IDisposable
     }
 
     public InstallChoices Choices(SetupTasks? tasks = null) =>
-        new(InstallFolder, InstallScope.Machine, tasks ?? SetupTasks.Defaults, ["pandoc"], "en");
+        new(InstallFolder, InstallScope.Machine, tasks ?? new SetupTasks(true, true, true, true, false), ["pandoc"], "en");
 
     public InstallResult Install(InstallChoices? choices = null, PreviousInstall? previous = null)
     {

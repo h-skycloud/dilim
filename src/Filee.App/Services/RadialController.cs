@@ -81,7 +81,7 @@ public sealed class RadialController(
     /// invisible until files are dragged into it (FilesEntered); a gesture without files (text, a rubber-band
     /// selection, nothing at all) never shows anything and closes when the button is released.
     /// </summary>
-    public void ShowForDrag(int x, int y)
+    public void ShowForDrag(int x, int y, PieMode mode = PieMode.Convert)
     {
         ReleaseProgressToToast();
         _grace.Cancel();
@@ -92,7 +92,7 @@ public sealed class RadialController(
         _dropped = false;
         _dragReachedDonut = false;
         _converted = false;
-        viewModel.ResetForDrag();
+        viewModel.ResetForDrag(mode);
         window.DonutControl.AllowContextEdit = false;
         PlaceAndShow(window, x, y, activate: false);
         WatchFlipKey();
@@ -111,7 +111,7 @@ public sealed class RadialController(
     /// donut may lose focus once while Filee becomes the active app. <paramref name="web"/>: the files are placeholders
     /// of this browser drop (the drop zone), which the donut now owns.
     /// </summary>
-    public void ShowForFiles(int x, int y, IReadOnlyList<string> files, bool forAnotherProcess = false, WebDrop? web = null)
+    public void ShowForFiles(int x, int y, IReadOnlyList<string> files, bool forAnotherProcess = false, WebDrop? web = null, PieMode mode = PieMode.Convert)
     {
         if (web is null)
             files = platform.ResolveShortcuts(files);
@@ -129,7 +129,7 @@ public sealed class RadialController(
         var window = EnsureWindow();
         _dropped = false;
         _converted = false;
-        viewModel.Load(files, clickMode: true);
+        viewModel.Load(files, clickMode: true, mode: mode);
         viewModel.FitToThisDonut();
         window.DonutControl.AllowContextEdit = true;
         PlaceAndShow(window, x, y, activate: true);
@@ -256,6 +256,7 @@ public sealed class RadialController(
             log.LogInformation("Drag over the donut: {Events} move event(s), ended on {Kind} {Index}, drawn lit {Lit:0.00}",
                 events, hit.Kind, hit.Index, lit);
         window.EscapePressed += () => Close();
+        window.Activated += (_, _) => WatchFlipKey();
         window.Deactivated += (_, _) =>
         {
             if (!viewModel.IsClickMode || _editing)
@@ -279,6 +280,10 @@ public sealed class RadialController(
         {
             if (FlipsFromHook)
                 donut.Flip();
+        };
+        triggers.EscapePressed += (_, _) =>
+        {
+            if (_visible) Close();
         };
         triggers.FlipWheelTurned += (_, _) =>
         {
@@ -321,7 +326,10 @@ public sealed class RadialController(
             var near = _window?.Position;
             Close(animate: false);
             if (web is null)
-                windows.ShowCropOverlay(sources, preset, near);
+            {
+                if (preset.ToolId is { } tool) AppHost.Get<DilimService>().Show(tool, sources);
+                else windows.ShowCropOverlay(sources, preset, near);
+            }
             else
                 _ = ShowToolForBrowserFilesAsync(web, preset, near);
             return;
@@ -345,7 +353,10 @@ public sealed class RadialController(
         var files = await conversions.SaveBrowserFilesAsync(web, (placeholder, ex) =>
             log.LogWarning(ex, "Saving {File} from a browser for {Preset} failed", Path.GetFileName(placeholder), preset.Id));
         if (files.Count > 0)
-            windows.ShowCropOverlay(files, preset, near);
+        {
+            if (preset.ToolId is { } tool) AppHost.Get<DilimService>().Show(tool, files);
+            else windows.ShowCropOverlay(files, preset, near);
+        }
     }
 
     /// <summary>
@@ -353,7 +364,7 @@ public sealed class RadialController(
     /// archive"; any other preset converts the files beside them (issue #186).
     /// </summary>
     internal static IReadOnlyList<string> SourcesFor(Preset preset, IReadOnlyList<string> files) =>
-        preset.PacksIntoOneArchive ? files : [.. files.Where(path => !Directory.Exists(path))];
+        preset.PacksIntoOneArchive || preset.ToolId is { } id && DilimTools.Actions.Contains(id) ? files : [.. files.Where(path => !Directory.Exists(path))];
 
     // ───────── Progress ring ─────────
 
@@ -457,10 +468,16 @@ public sealed class RadialController(
     /// Has the global hook report the flip key and the wheel only while a drag-mode donut shows files that could flip;
     /// they are left alone otherwise (see <see cref="TriggerService.WatchFlipKey"/>).
     /// </summary>
-    private void WatchFlipKey() => triggers.WatchFlipKey = FlipsFromHook;
+    private void WatchFlipKey()
+    {
+        triggers.WatchFlipKey = FlipsFromHook;
+        // Escape is idempotent; listen for it even when Windows reports focus differently to Avalonia.
+        triggers.WatchEscape = _visible;
+    }
 
     /// <summary>A drag-mode donut shows files and nothing was dropped yet: the hook's flip key and wheel flip it.</summary>
-    private bool FlipsFromHook => _visible && !_dropped && !viewModel.IsClickMode && viewModel.HasFiles;
+    private bool FlipsFromHook => _visible && !_dropped && viewModel.HasFiles &&
+        (!viewModel.IsClickMode || OperatingSystem.IsWindows() && _window?.IsActive == false);
 
     /// <summary>
     /// Top-left corner of a <paramref name="sidePx"/> square window centred on <paramref name="cursor"/>, moved into
@@ -489,6 +506,7 @@ public sealed class RadialController(
         var position = WindowPosition(cursor, screen?.WorkingArea, sidePx);
 
         Motion.Refresh();
+        window.ShowActivated = activate;
         window.Position = position;
         if (!window.IsVisible)
             window.Show();

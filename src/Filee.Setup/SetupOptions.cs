@@ -66,7 +66,7 @@ public sealed record SetupOptions
     public string? Tasks { get; init; }
     public string? MergeTasks { get; init; }
     public bool NoIcons { get; init; }
-    public InstallScope Scope { get; init; } = InstallScope.Machine;
+    public InstallScope Scope { get; init; } = InstallScope.User;
     public bool Portable { get; init; }
     public string? LogFile { get; init; }
     public bool ForceCloseApplications { get; init; } = true;

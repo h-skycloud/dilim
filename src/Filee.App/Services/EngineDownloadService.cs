@@ -214,7 +214,8 @@ public sealed class EngineDownloadService
     {
         var id = state.Package.Id;
         var own = EngineEnvironment.OwnCopyFolder(id);
-        var system = own is null && !_installer.IsInstalled(state.Package) ? EngineEnvironment.SystemCopyFolder(id) : null;
+        var bundled = EngineEnvironment.FindBundled(id) is { } root ? EngineEnvironment.FolderWithPrograms(id, root) : null;
+        var system = own is null && !_installer.IsInstalled(state.Package) ? bundled ?? EngineEnvironment.SystemCopyFolder(id) : null;
         state.OwnCopyFolder = own ?? system;
         state.FromSystem = system is not null;
         state.UpdateNote = null;

@@ -901,7 +901,7 @@ public sealed partial class DonutMenu : Control
             {
                 new GradientStop(Color.FromArgb(0, 0, 0, 0), 0),
                 new GradientStop(Color.FromArgb(0, 0, 0, 0), (r2 - 18) / shadowRadius),
-                new GradientStop(Color.FromArgb(46, 0, 0, 0), (r2 - 2) / shadowRadius),
+                new GradientStop(Color.FromArgb(20, 0, 0, 0), (r2 - 2) / shadowRadius),
                 new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
             },
         };

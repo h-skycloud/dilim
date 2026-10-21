@@ -12,12 +12,12 @@
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
-          <SolidColorBrush x:Key="PageBrush" Color="#F6F5F1" />
+          <SolidColorBrush x:Key="PageBrush" Color="#F4F4F4" />
           <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
-          <SolidColorBrush x:Key="SurfaceAltBrush" Color="#EFEDE6" />
+          <SolidColorBrush x:Key="SurfaceAltBrush" Color="#F0F2EF" />
           <SolidColorBrush x:Key="SubtleBorderBrush" Color="#16000000" />
-          <SolidColorBrush x:Key="TextPrimaryBrush" Color="#1F1E1D" />
-          <SolidColorBrush x:Key="TextSecondaryBrush" Color="#6B6A66" />
+          <SolidColorBrush x:Key="TextPrimaryBrush" Color="#282B29" />
+          <SolidColorBrush x:Key="TextSecondaryBrush" Color="#697267" />
           <SolidColorBrush x:Key="DangerBrush" Color="#C73A39" />
           <SolidColorBrush x:Key="SuccessBrush" Color="#0F7A5A" />
           <SolidColorBrush x:Key="WarningBrush" Color="#9A5B0C" />
@@ -38,10 +38,10 @@
       </ResourceDictionary.ThemeDictionaries>
 
       <!-- Defaults; ThemeService overwrites these at startup. -->
-      <SolidColorBrush x:Key="AccentBrush" Color="#7F77DD" />
-      <SolidColorBrush x:Key="AccentSoftBrush" Color="#2E7F77DD" />
-      <SolidColorBrush x:Key="AccentFaintBrush" Color="#177F77DD" />
-      <SolidColorBrush x:Key="AccentStrongBrush" Color="#5F59A6" />
+      <SolidColorBrush x:Key="AccentBrush" Color="#F35B28" />
+      <SolidColorBrush x:Key="AccentSoftBrush" Color="#2EF35B28" />
+      <SolidColorBrush x:Key="AccentFaintBrush" Color="#17F35B28" />
+      <SolidColorBrush x:Key="AccentStrongBrush" Color="#B6441E" />
       <SolidColorBrush x:Key="OnAccentBrush" Color="#FFFFFF" />
       <CornerRadius x:Key="SoftRadius">16</CornerRadius>
       <CornerRadius x:Key="SoftRadiusSmall">9</CornerRadius>

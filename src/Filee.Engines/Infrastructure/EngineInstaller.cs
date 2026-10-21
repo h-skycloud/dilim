@@ -309,6 +309,12 @@ public sealed class EngineInstaller
     /// </summary>
     private static string MsiProgramFolder(string id, string staging)
     {
+        if (id == "7zip")
+        {
+            var exe = Directory.EnumerateFiles(staging, "7z.exe", SearchOption.AllDirectories).FirstOrDefault()
+                      ?? throw new InvalidDataException("7z.exe not found in the 7-Zip package.");
+            return Path.GetDirectoryName(exe)!;
+        }
         if (id == "calibre")
         {
             var convert = Directory.EnumerateFiles(staging, "ebook-convert.exe", SearchOption.AllDirectories).FirstOrDefault()
@@ -426,10 +432,11 @@ public sealed class EngineInstaller
         if (!package.Components.Contains(runtime) || !Directory.Exists(FolderOf(runtime)))
             return;
         var dlls = Directory.GetFiles(FolderOf(runtime), "*.dll");
-        foreach (var id in package.Components.Where(c => c != runtime && _components[c].Kind == "conda"))
+        foreach (var id in package.Components.Where(c => c != runtime && (_components[c].Kind == "conda" || c == "rhwp")))
         {
+            var folder = EngineEnvironment.FolderWithPrograms(id, FolderOf(id)) ?? FolderOf(id);
             foreach (var dll in dlls)
-                File.Copy(dll, Path.Combine(FolderOf(id), Path.GetFileName(dll)), overwrite: true);
+                File.Copy(dll, Path.Combine(folder, Path.GetFileName(dll)), overwrite: true);
         }
     }
 

@@ -51,6 +51,12 @@ public sealed class GestureDetector
         }
     }
 
+    /// <summary>Refresh position before a key chord even when no mouse event occurred since the hook started.</summary>
+    public void SetCursor(int x, int y)
+    {
+        lock (_lock) { _lastX = x; _lastY = y; }
+    }
+
     public void MouseDown(TriggerMouseButton button, int x, int y, ModifierKeys modifiers)
     {
         TriggerGesture? holdGesture = null;

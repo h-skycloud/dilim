@@ -196,6 +196,8 @@ public static class FormatRegistry
         new("mkv", "MKV", FormatCategory.Video, ["mkv"]),
         new("webm", "WEBM", FormatCategory.Video, ["webm"]),
         new("avi", "AVI", FormatCategory.Video, ["avi", "divx"]),
+        new("bik", "Bink Video", FormatCategory.Video, ["bik", "bk2"], Writable: false),
+        new("cda", "Audio CD track", FormatCategory.Audio, ["cda"], Writable: false),
         new("wmv", "WMV", FormatCategory.Video, ["wmv", "asf"]),
         new("flv", "FLV", FormatCategory.Video, ["flv", "f4v"]),
         new("mpg", "MPEG", FormatCategory.Video, ["mpg", "mpeg", "mpe", "m1v", "m2v"]),

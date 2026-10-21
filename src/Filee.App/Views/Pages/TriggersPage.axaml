@@ -54,6 +54,11 @@
                 </Border>
               </DockPanel>
 
+              <StackPanel>
+                <TextBlock Classes="label" Text="{DynamicResource pie.menu}" />
+                <ComboBox ItemsSource="{Binding Menus}" SelectedItem="{Binding Menu}" HorizontalAlignment="Stretch" />
+              </StackPanel>
+
               <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,14,Auto">
                 <StackPanel>
                   <TextBlock Classes="label" Text="{DynamicResource triggers.kind}" />

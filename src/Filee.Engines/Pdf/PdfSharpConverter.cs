@@ -206,13 +206,15 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IImageTransforme
     private static async Task<bool> CompressFileAsync(string plain, string output, Preset preset, string? gs, string scratch, CancellationToken ct)
     {
         var level = preset.Pdf.Compression;
+        // Explicit image settings belong to the built-in compressor; a Ghostscript level would override them.
+        if (preset.Pdf.CompressionDpi.HasValue || preset.Pdf.CompressionQuality.HasValue) gs = null;
         var candidates = new List<string>();
         Exception? failure = null;
         var builtIn = Path.Combine(scratch, Guid.NewGuid().ToString("N")[..8] + "-filee.pdf");
         try
         {
             using var document = OpenForChanges(plain);
-            PdfCompressor.Compress(document, level, preset.Image.KeepMetadata, ct);
+            PdfCompressor.Compress(document, level, preset.Image.KeepMetadata, ct, preset.Pdf.CompressionDpi, preset.Pdf.CompressionQuality);
             document.Save(builtIn);
             candidates.Add(builtIn);
         }

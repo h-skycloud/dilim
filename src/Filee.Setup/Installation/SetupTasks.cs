@@ -21,7 +21,7 @@ public sealed record SetupTasks(bool ContextMenu, bool ModernMenu, bool Startup,
     public static readonly IReadOnlyList<string> Names = [ContextMenuName, ModernMenuName, StartupName, CliName, DesktopIconName];
 
     /// <summary>What a fresh install ticks: everything but the desktop shortcut.</summary>
-    public static SetupTasks Defaults { get; } = new(true, true, true, true, false);
+    public static SetupTasks Defaults { get; } = new(true, false, false, false, false);
 
     /// <summary>
     /// /TASKS (only the listed tasks) and /MERGETASKS (changes to the defaults), as Inno Setup reads them:

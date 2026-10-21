@@ -10,7 +10,7 @@ namespace Filee.Core.Presets;
 public static class OutputPathResolver
 {
     /// <summary>Values available to file name pattern tokens.</summary>
-    public readonly record struct Tokens(string SourcePath, string PresetName, int Index, DateTime Now);
+    public readonly record struct Tokens(string SourcePath, string PresetName, int Index, DateTime Now, int Count = 1);
 
     /// <summary>
     /// Computes the output path for one output file.
@@ -126,7 +126,8 @@ public static class OutputPathResolver
             .Replace("{preset}", tokens.PresetName, StringComparison.OrdinalIgnoreCase)
             .Replace("{date}", tokens.Now.ToString("yyyyMMdd"), StringComparison.OrdinalIgnoreCase)
             .Replace("{time}", tokens.Now.ToString("HHmmss"), StringComparison.OrdinalIgnoreCase)
-            .Replace("{index}", tokens.Index.ToString(), StringComparison.OrdinalIgnoreCase);
+            .Replace("{index}", tokens.Index.ToString(), StringComparison.OrdinalIgnoreCase)
+            .Replace("{count}", tokens.Count.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Removes characters that are invalid in file names on any supported OS.</summary>

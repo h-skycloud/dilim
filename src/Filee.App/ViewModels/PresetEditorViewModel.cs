@@ -85,6 +85,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         Conflicts = Enum.GetValues<ConflictPolicy>().Select(v => new Choice<ConflictPolicy>(v, loc[$"presets.conflict.{v}"])).ToList();
         TiffCompressions = Enum.GetValues<TiffCompression>().Select(v => new Choice<TiffCompression>(v, v.ToString().ToUpperInvariant())).ToList();
         MediaQualities = Enum.GetValues<MediaQuality>().Select(v => new Choice<MediaQuality>(v, loc[$"presets.media_quality.{v}"])).ToList();
+        EncodingSpeeds = Enum.GetValues<VideoEncodingSpeed>().Select(v => new Choice<VideoEncodingSpeed>(v, loc[$"presets.encoding_speed.{v}"])).ToList();
+        AudioEncodings = Enum.GetValues<AudioEncodingMode>().Select(v => new Choice<AudioEncodingMode>(v, loc[$"presets.audio_encoding.{v}"])).ToList();
+        SourceActions = Enum.GetValues<SourceAction>().Select(v => new Choice<SourceAction>(v, loc[$"presets.source_action.{v}"])).ToList();
         MaxHeights = Steps(MaxHeightSteps, _edit.Media.MaxHeight, h => h == 0 ? loc["presets.max_height.original"] : $"{h}p");
         AudioBitrates = Steps(BitrateSteps, _edit.Media.AudioBitrateKbps, k => k == 0 ? loc["presets.audio_bitrate.auto"] : $"{k} kbps");
         AudioChannelChoices = new[] { 0, 1, 2 }.Select(c => new Choice<int>(c, loc[$"presets.audio_channels.{c}"])).ToList();
@@ -98,6 +101,22 @@ public sealed partial class PresetEditorViewModel : ObservableObject
             .Select(s => new Choice<double>(s, s == 1 ? loc["presets.animation_speed.original"] : SpeedLabel(s)))];
 
         _name = string.IsNullOrWhiteSpace(_edit.Name) ? loc.DisplayName(_edit) : _edit.Name;
+        _folder = _edit.Folder;
+        _maximumSize = _edit.Image.MaximumSize;
+        _clampPowerOfTwo = _edit.Image.ClampPowerOfTwo;
+        _audioSpeed = _edit.Media.AudioSpeed;
+        _pitchSemitones = _edit.Media.PitchSemitones;
+        _audioEncoding = AudioEncodings.FirstOrDefault(v => v.Value == _edit.Media.AudioEncoding) ?? AudioEncodings[0];
+        _useAudioVbrQuality = _edit.Media.AudioVbrQuality.HasValue;
+        _audioVbrQuality = _edit.Media.AudioVbrQuality ?? 2;
+        _useLegacyVideoQuality = _edit.Media.LegacyVideoQuality.HasValue;
+        _legacyVideoQuality = _edit.Media.LegacyVideoQuality ?? 4;
+        _exactWidth = _edit.Media.ExactWidth;
+        _exactHeight = _edit.Media.ExactHeight;
+        _useCustomArguments = _edit.Media.UseCustomArguments;
+        _ffmpegArguments = _edit.Media.FfmpegArguments;
+        _sourceAction = SourceActions.FirstOrDefault(v => v.Value == _edit.Output.AfterConversion) ?? SourceActions[0];
+        _archiveFolderName = _edit.Output.ArchiveFolderName;
         _target = Targets.FirstOrDefault(t => t.Value == _edit.TargetFormat) ?? Targets[1];
         _resize = ResizeModes.First(r => r.Value == _edit.Image.Resize);
         _rotation = Rotations.FirstOrDefault(r => r.Value == _edit.Image.Rotation) ?? Rotations[0];
@@ -118,6 +137,15 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _videoCodecValue = _edit.Media.VideoCodec;
         _audioCodecValue = _edit.Media.AudioCodec;
         _hardwareEncoding = _edit.Media.HardwareEncoding;
+        _frameRate = _edit.Media.FrameRate;
+        _videoScalePercent = _edit.Media.ScalePercent;
+        _videoRotation = Rotations.FirstOrDefault(r => r.Value == _edit.Media.Rotation) ?? Rotations[0];
+        _customCrf = _edit.Media.Crf.HasValue;
+        _crf = _edit.Media.Crf ?? 23;
+        _encodingSpeed = EncodingSpeeds.FirstOrDefault(s => s.Value == _edit.Media.EncodingSpeed) ?? EncodingSpeeds[0];
+        _customPdfCompression = _edit.Pdf.CompressionDpi.HasValue || _edit.Pdf.CompressionQuality.HasValue;
+        _pdfCompressionDpi = _edit.Pdf.CompressionDpi ?? 150;
+        _pdfCompressionQuality = _edit.Pdf.CompressionQuality ?? 65;
         _archiveLevel = ArchiveLevels.First(l => l.Value == _edit.Archive.Level);
         _combineIntoOne = _edit.Archive.CombineIntoOne;
         _saveEveryFrame = _edit.Media.SaveEveryFrame;
@@ -178,6 +206,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public IReadOnlyList<Choice<ConflictPolicy>> Conflicts { get; }
     public IReadOnlyList<Choice<TiffCompression>> TiffCompressions { get; }
     public IReadOnlyList<Choice<MediaQuality>> MediaQualities { get; }
+    public IReadOnlyList<Choice<VideoEncodingSpeed>> EncodingSpeeds { get; }
+    public IReadOnlyList<Choice<AudioEncodingMode>> AudioEncodings { get; }
+    public IReadOnlyList<Choice<SourceAction>> SourceActions { get; }
     public IReadOnlyList<Choice<int>> MaxHeights { get; }
     public IReadOnlyList<Choice<int>> AudioBitrates { get; }
     public IReadOnlyList<Choice<int>> AudioChannelChoices { get; }
@@ -191,6 +222,24 @@ public sealed partial class PresetEditorViewModel : ObservableObject
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(NameError), nameof(IsValid))]
     private string _name;
+    [ObservableProperty] private string _folder;
+    [ObservableProperty] private int _maximumSize;
+    [ObservableProperty] private bool _clampPowerOfTwo;
+    [ObservableProperty] private double _audioSpeed;
+    [ObservableProperty] private double _pitchSemitones;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowAudioVbrQuality))]
+    private Choice<AudioEncodingMode> _audioEncoding;
+    [ObservableProperty] private bool _useAudioVbrQuality;
+    [ObservableProperty] private int _audioVbrQuality;
+    [ObservableProperty] private bool _useLegacyVideoQuality;
+    [ObservableProperty] private int _legacyVideoQuality;
+    [ObservableProperty] private int _exactWidth;
+    [ObservableProperty] private int _exactHeight;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(OptionsError), nameof(IsValid))] private bool _useCustomArguments;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(OptionsError), nameof(IsValid))] private string _ffmpegArguments;
+    [ObservableProperty] private Choice<SourceAction> _sourceAction;
+    [ObservableProperty] private string _archiveFolderName;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowImage), nameof(ShowTurnForPdf), nameof(ShowQuality), nameof(ShowTiff), nameof(ShowMultiPageTiff), nameof(ShowWebp), nameof(ShowIco),
@@ -198,6 +247,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         nameof(ShowPdfCompression), nameof(ShowPdfCompressionOptions),
         nameof(ShowMedia), nameof(ShowMediaQuality), nameof(ShowMaxHeight), nameof(ShowAudioBitrate), nameof(ShowRemoveAudio),
         nameof(ShowAudioChannels), nameof(ShowWav), nameof(VideoCodecs), nameof(VideoCodecChoice), nameof(ShowVideoCodec), nameof(ShowHardwareEncoding),
+        nameof(ShowVideoTransforms), nameof(ShowVideoTuning), nameof(ShowSoftwareTuning), nameof(MaxCrf),
+        nameof(ShowAudioEffects), nameof(ShowAudioEncoding), nameof(ShowLegacyVideoQuality), nameof(MaxAudioVbrQuality), nameof(MinAudioVbrQuality), nameof(OptionsError), nameof(IsValid),
         nameof(AudioCodecs), nameof(AudioCodecChoice), nameof(ShowAudioCodec),
         nameof(ShowArchive), nameof(ShowArchiveOptions), nameof(ShowExtractNote),
         nameof(ShowSaveEveryFrame), nameof(ShowAnimationSpeed), nameof(ShowTrace), nameof(ShowExtractMotionPhoto))]
@@ -233,6 +284,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
             _videoCodecValue = value.Value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(ShowHardwareEncoding));
+            OnPropertyChanged(nameof(MaxCrf));
+            OnPropertyChanged(nameof(ShowSoftwareTuning));
         }
     }
 
@@ -321,6 +374,9 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     private Choice<PdfCompression> _compressionLevel;
 
     [ObservableProperty] private bool _compressWithGhostscript;
+    [ObservableProperty] private bool _customPdfCompression;
+    [ObservableProperty] private int _pdfCompressionDpi;
+    [ObservableProperty] private int _pdfCompressionQuality;
 
     /// <summary>PDF → image: one tall image of all pages.</summary>
     [ObservableProperty] private bool _combinePages;
@@ -345,7 +401,13 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     [ObservableProperty] private bool _removeAudio;
 
     /// <summary>Encode H.264 / HEVC on the graphics chip when one works (MediaOptions.HardwareEncoding).</summary>
-    [ObservableProperty] private bool _hardwareEncoding;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowSoftwareTuning))] private bool _hardwareEncoding;
+    [ObservableProperty] private double _frameRate;
+    [ObservableProperty] private int _videoScalePercent;
+    [ObservableProperty] private Choice<ImageRotation> _videoRotation;
+    [ObservableProperty] private bool _customCrf;
+    [ObservableProperty] private int _crf;
+    [ObservableProperty] private Choice<VideoEncodingSpeed> _encodingSpeed;
     [ObservableProperty] private Choice<ArchiveLevel> _archiveLevel;
     [ObservableProperty] private bool _combineIntoOne;
     [ObservableProperty] private bool _saveEveryFrame;
@@ -368,6 +430,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     // A combo box that loses its selection sets null: every choice keeps its value (see Choices.Restore).
     partial void OnTargetChanged(Choice<string>? oldValue, Choice<string> newValue) => Choices.Restore(oldValue, newValue, v => Target = v);
     partial void OnResizeChanged(Choice<ResizeMode>? oldValue, Choice<ResizeMode> newValue) => Choices.Restore(oldValue, newValue, v => Resize = v);
+    partial void OnVideoRotationChanged(Choice<ImageRotation>? oldValue, Choice<ImageRotation> newValue) => Choices.Restore(oldValue, newValue, v => VideoRotation = v);
+    partial void OnEncodingSpeedChanged(Choice<VideoEncodingSpeed>? oldValue, Choice<VideoEncodingSpeed> newValue) => Choices.Restore(oldValue, newValue, v => EncodingSpeed = v);
+    partial void OnAudioEncodingChanged(Choice<AudioEncodingMode>? oldValue, Choice<AudioEncodingMode> newValue) => Choices.Restore(oldValue, newValue, v => AudioEncoding = v);
+    partial void OnSourceActionChanged(Choice<SourceAction>? oldValue, Choice<SourceAction> newValue) => Choices.Restore(oldValue, newValue, v => SourceAction = v);
     partial void OnRotationChanged(Choice<ImageRotation>? oldValue, Choice<ImageRotation> newValue) => Choices.Restore(oldValue, newValue, v => Rotation = v);
     partial void OnFlipChanged(Choice<ImageFlip>? oldValue, Choice<ImageFlip> newValue) => Choices.Restore(oldValue, newValue, v => Flip = v);
     partial void OnPageSizeChanged(Choice<PdfPageSize>? oldValue, Choice<PdfPageSize> newValue) => Choices.Restore(oldValue, newValue, v => PageSize = v);
@@ -425,9 +491,15 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowDocument => TargetId == "pdf";
     /// <summary>Markdown can't hold pictures: they go into a folder next to it, or are left out.</summary>
     public bool ShowLeaveOutPictures => TargetId == "md";
-    public bool ShowMedia => ShowMediaQuality || ShowMaxHeight || ShowRemoveAudio || ShowAudioChannels || ShowVideoCodec || ShowAudioCodec;
+    public bool ShowMedia => ShowMediaQuality || ShowMaxHeight || ShowRemoveAudio || ShowAudioChannels || ShowVideoCodec || ShowAudioCodec || ShowVideoTransforms || ShowAudioEffects;
+    public bool ShowAudioEffects => TargetIsAudio || TargetIsVideo;
+    public bool ShowAudioEncoding => TargetId is "mp3" or "ogg" or "aac" or "m4a" or "m4b" || ShowVideoTuning && TargetId != "webm";
+    public bool ShowLegacyVideoQuality => TargetId is "avi" or "wmv" or "ogv" or "mpg" or "mxf";
+    public int MaxAudioVbrQuality => TargetId == "mp3" ? 9 : 10;
+    public int MinAudioVbrQuality => TargetId == "ogg" ? -2 : 0;
+    public bool ShowAudioVbrQuality => AudioEncoding.Value == AudioEncodingMode.VariableBitrate;
     /// <summary>Mono / stereo for every audio target but AMR, which is mono by definition.</summary>
-    public bool ShowAudioChannels => TargetIsAudio && TargetId != "amr";
+    public bool ShowAudioChannels => (TargetIsAudio || TargetIsVideo) && TargetId != "amr";
     /// <summary>Sample rate and sample format: the PCM of WAV and W64 takes any.</summary>
     public bool ShowWav => TargetId is "wav" or "w64";
     /// <summary>MP4, MKV, MOV and WebM can be written with HEVC or AV1 besides their usual codec.</summary>
@@ -438,6 +510,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowAudioCodec => AudioCodecs.Count > 1;
     public bool ShowMediaQuality => TargetIsLossyMedia;
     public bool ShowMaxHeight => TargetIsVideo;
+    public bool ShowVideoTuning => MediaCodecs.SupportsVideoTuning(TargetId);
+    public bool ShowVideoTransforms => ShowVideoTuning || TargetId is "gif" or "apng";
+    public bool ShowSoftwareTuning => ShowVideoTuning && !(ShowHardwareEncoding && HardwareEncoding);
+    public int MaxCrf => MediaCodecs.Effective(TargetId, _videoCodecValue) == VideoCodec.Av1 || TargetId == "webm" ? 63 : 51;
     public bool ShowAudioBitrate => TargetIsLossyMedia;
     public bool ShowRemoveAudio => TargetIsVideo;
     public bool ShowArchive => TargetCategory == FormatCategory.Archive;
@@ -467,7 +543,16 @@ public sealed partial class PresetEditorViewModel : ObservableObject
     public bool ShowCustomFolder => Location.Value == OutputLocation.CustomFolder;
 
     public string? NameError => string.IsNullOrWhiteSpace(Name) ? _loc["presets.name_required"] : null;
-    public bool IsValid => NameError is null;
+    public string? OptionsError
+    {
+        get
+        {
+            if (!UseCustomArguments || !ShowAudioEffects) return null;
+            try { FfmpegOptions.Parse(FfmpegArguments); return null; }
+            catch (ArgumentException ex) { return ex.Message; }
+        }
+    }
+    public bool IsValid => NameError is null && OptionsError is null;
 
     /// <summary>Writes the edits into the original preset. Returns false if the input is invalid.</summary>
     public bool Apply()
@@ -480,7 +565,10 @@ public sealed partial class PresetEditorViewModel : ObservableObject
             _original.Name = Name.Trim();
 
         _original.TargetFormat = TargetId;
+        _original.Folder = Folder.Trim().Trim('/');
         var image = _original.Image;
+        image.MaximumSize = Math.Clamp(MaximumSize, 0, 32768);
+        image.ClampPowerOfTwo = ClampPowerOfTwo;
         image.Quality = Math.Clamp(Quality, 1, 100);
         image.Resize = Resize.Value;
         // Only images and PDFs are turned; for any other target a rotation left over from an earlier target would make
@@ -523,6 +611,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         pdf.SplitTallImage = SplitTallImage;
         pdf.Compression = CompressionLevel.Value;
         pdf.CompressWithGhostscript = CompressWithGhostscript;
+        pdf.CompressionDpi = CustomPdfCompression ? Math.Clamp(PdfCompressionDpi, 36, 1200) : null;
+        pdf.CompressionQuality = CustomPdfCompression ? Math.Clamp(PdfCompressionQuality, 1, 100) : null;
         _original.Document.PdfA = PdfA;
         // Only where the option is shown, as with SaveEveryFrame below.
         _original.Document.LeaveOutPictures = ShowLeaveOutPictures && LeaveOutPictures;
@@ -538,6 +628,20 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         media.VideoCodec = MediaCodecs.Effective(TargetId, _videoCodecValue);
         media.AudioCodec = MediaCodecs.Effective(TargetId, _audioCodecValue);
         media.HardwareEncoding = HardwareEncoding;
+        media.AudioSpeed = ShowAudioEffects && double.IsFinite(AudioSpeed) ? Math.Clamp(AudioSpeed, .25, 4) : 1;
+        media.PitchSemitones = ShowAudioEffects && double.IsFinite(PitchSemitones) ? Math.Clamp(PitchSemitones, -24, 24) : 0;
+        media.AudioEncoding = ShowAudioEncoding ? AudioEncoding.Value : AudioEncodingMode.Default;
+        media.AudioVbrQuality = ShowAudioEncoding && UseAudioVbrQuality ? Math.Clamp(AudioVbrQuality, MinAudioVbrQuality, MaxAudioVbrQuality) : null;
+        media.LegacyVideoQuality = ShowLegacyVideoQuality && UseLegacyVideoQuality ? Math.Clamp(LegacyVideoQuality, TargetId == "ogv" ? 0 : 1, TargetId == "ogv" ? 10 : 31) : null;
+        media.ExactWidth = ShowVideoTransforms ? Math.Clamp(ExactWidth, 0, 16384) : 0;
+        media.ExactHeight = ShowVideoTransforms ? Math.Clamp(ExactHeight, 0, 16384) : 0;
+        media.UseCustomArguments = ShowAudioEffects && UseCustomArguments;
+        media.FfmpegArguments = FfmpegArguments.Trim();
+        media.FrameRate = ShowVideoTransforms && double.IsFinite(FrameRate) && FrameRate > 0 ? Math.Clamp(FrameRate, 1, 240) : 0;
+        media.ScalePercent = ShowVideoTransforms ? Math.Clamp(VideoScalePercent, 1, 400) : 100;
+        media.Rotation = ShowVideoTransforms ? VideoRotation.Value : ImageRotation.None;
+        media.Crf = ShowSoftwareTuning && CustomCrf ? Math.Clamp(Crf, 0, MaxCrf) : null;
+        media.EncodingSpeed = ShowSoftwareTuning ? EncodingSpeed.Value : VideoEncodingSpeed.Default;
         // Only where the option is shown: a box ticked for PNG and left behind by another target saves nothing.
         media.SaveEveryFrame = ShowSaveEveryFrame && SaveEveryFrame;
         media.FrameInterval = media.SaveEveryFrame ? Math.Clamp(FrameInterval, 1, 1000) : 1;
@@ -549,6 +653,8 @@ public sealed partial class PresetEditorViewModel : ObservableObject
         _original.Trace.Detail = Math.Clamp(TraceDetail, 0, 100);
 
         var output = _original.Output;
+        output.AfterConversion = SourceAction.Value;
+        output.ArchiveFolderName = string.IsNullOrWhiteSpace(ArchiveFolderName) ? "Originals" : ArchiveFolderName.Trim();
         output.Location = Location.Value;
         output.SubfolderName = string.IsNullOrWhiteSpace(SubfolderName) ? "converted" : SubfolderName.Trim();
         output.CustomFolder = CustomFolder.Trim();

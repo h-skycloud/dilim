@@ -11,9 +11,10 @@
       <StackPanel Orientation="Horizontal" Spacing="18">
         <Image Source="avares://Filee/Assets/Icons/filee.png" Width="72" Height="72" />
         <StackPanel VerticalAlignment="Center" Spacing="4">
-          <TextBlock Text="Filee" FontSize="24" FontWeight="Bold" />
+          <TextBlock Text="Dilim" FontSize="24" FontWeight="Bold" />
           <TextBlock Classes="muted" Text="{Binding Version}" />
           <TextBlock Classes="muted" Text="{DynamicResource about.license}" />
+          <TextBlock Classes="muted" MaxWidth="520" TextWrapping="Wrap" Text="{DynamicResource about.origin_attribution}" />
           <Button Classes="ghost" Padding="0" Click="OnOpenRepository" Margin="0,4,0,0">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <PathIcon Width="13" Height="13" Data="{StaticResource Icon.Link}" Foreground="{DynamicResource AccentBrush}" />
@@ -31,7 +32,7 @@
       </StackPanel>
     </Border>
     <!-- The sponsors right below Filee itself, while there are any -->
-    <Border Classes="card" IsVisible="{Binding #Supporters.IsVisible}">
+    <Border Classes="card" IsVisible="False">
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="{DynamicResource sponsor.thanks}" />
         <v:SupportersView x:Name="Supporters" ShowTitle="False" LogoHeight="40" />
@@ -60,7 +61,7 @@
         <WrapPanel>
           <Button Classes="accent" Click="OnStar" Margin="0,0,8,0" Content="{DynamicResource feedback.star}" />
           <Button Click="OnIssue" Content="{DynamicResource feedback.issue}" Margin="0,0,8,0" />
-          <Button Click="OnSponsor">
+          <Button Click="OnSponsor" IsVisible="False">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <PathIcon Width="13" Height="13" Data="{StaticResource Icon.Heart}" Foreground="#D4537E" />
               <TextBlock Text="{DynamicResource about.sponsor}" />

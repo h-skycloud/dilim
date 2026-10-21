@@ -1,6 +1,6 @@
 # Third-party notices
 
-Filee is MIT-licensed. It uses and redistributes the following third-party software.
+Dilim by Dilim contributors is MIT-licensed and based on Filee by Myeonggu Kim (KnifeLemon) and contributors. The original MIT attribution is preserved in LICENSE. It uses the following third-party software; optional engines are downloaded separately in the default public package.
 Each component remains under its own license.
 
 ## Libraries (NuGet)

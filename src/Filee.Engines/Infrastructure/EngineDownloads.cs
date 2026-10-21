@@ -29,10 +29,12 @@ public static class EngineDownloads
     public static IReadOnlyDictionary<string, EngineComponent> Components { get; } = ComponentsForRuntime(RuntimeIdentifier);
 
     /// <summary>
-    /// Packages offered in Settings → Engines and on first run. rhwp and 7-Zip are not listed: they are small and bundled.
+    /// Packages offered in Settings → Engines and on first run, including engines omitted by the public thin package.
     /// </summary>
     public static IReadOnlyList<EnginePackage> Packages { get; } =
     [
+        new("7zip", ["7zip"], 8_000_000, ["archive"]),
+        new("rhwp", OperatingSystem.IsWindows() ? ["rhwp", "vcruntime"] : ["rhwp"], 30_000_000, ["rhwp"]),
         new("libreoffice", OperatingSystem.IsWindows() ? ["libreoffice", "h2orestart", "jre"] : ["libreoffice"], 1_265_000_000, ["libreoffice"]),
         new("pandoc", ["pandoc"], 236_000_000, ["pandoc"]),
         // Ghostscript from conda-forge plus the Microsoft C++ runtime it was built against (copied next to it).
@@ -76,7 +78,7 @@ public static class EngineDownloads
     /// audio, calibre (~230 MB) only for rare e-book formats and Kindle output. Ghostscript is small but only needed for
     /// EPS / PostScript.
     /// </summary>
-    public static bool IsSuggested(EnginePackage package) => CanDownload(package) && DownloadSize(package) < SuggestLimit && package.Id != "ghostscript";
+    public static bool IsSuggested(EnginePackage package) => CanDownload(package) && (package.Id == "ffmpeg" || DownloadSize(package) < SuggestLimit && package.Id != "ghostscript");
 
     public static IReadOnlyDictionary<string, EngineComponent> ComponentsForRuntime(string runtimeIdentifier)
     {

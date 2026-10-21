@@ -10,6 +10,8 @@ public sealed class FilteredList<T> : ObservableCollection<T> where T : class
     private readonly ObservableCollection<T> _source;
     private readonly Func<T, IEnumerable<string?>> _texts;
     private string _query = "";
+    private Func<T, bool> _predicate = _ => true;
+    public Func<T, bool> Predicate { get => _predicate; set { _predicate = value; Refresh(); } }
 
     /// <param name="source">The full list.</param>
     /// <param name="texts">The texts of an item the query is looked for in (name, format, extensions …).</param>
@@ -36,7 +38,7 @@ public sealed class FilteredList<T> : ObservableCollection<T> where T : class
     }
 
     public bool Matches(T item) =>
-        _query.Length == 0 || _texts(item).Any(text => text?.Contains(_query, StringComparison.CurrentCultureIgnoreCase) == true);
+        _predicate(item) && (_query.Length == 0 || _texts(item).Any(text => text?.Contains(_query, StringComparison.CurrentCultureIgnoreCase) == true));
 
     /// <summary>Brings the list in line with the source and the query (also after an item's text changed).</summary>
     public void Refresh()

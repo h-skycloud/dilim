@@ -47,9 +47,12 @@ internal static class PdfCompressor
 
     /// <summary>Shrinks <paramref name="document"/>; save it afterwards.</summary>
     /// <param name="keepMetadata">False drops the XMP metadata of pages, pictures and forms.</param>
-    public static void Compress(PdfDocument document, PdfCompression level, bool keepMetadata, CancellationToken cancellationToken)
+    public static void Compress(PdfDocument document, PdfCompression level, bool keepMetadata, CancellationToken cancellationToken,
+        int? customDpi = null, int? customQuality = null)
     {
         var (dpi, quality) = Settings(level);
+        dpi = customDpi.HasValue ? Math.Clamp(customDpi.Value, 36, 1200) : dpi;
+        quality = customQuality.HasValue ? Math.Clamp(customQuality.Value, 1, 100) : quality;
         var done = new HashSet<PdfDictionary>(ReferenceEqualityComparer.Instance);
         foreach (var (image, use) in PdfPictureUses.Find(document))
         {

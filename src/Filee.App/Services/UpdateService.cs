@@ -47,6 +47,7 @@ public sealed partial class UpdateService : ObservableObject
 
     private readonly ILogger<UpdateService> _log;
     private readonly HttpClient _http;
+    private readonly string _repositoryUrl;
     private DispatcherTimer? _timer;
     private ReleaseFile? _installer;
     private ReleaseFile? _checksums;
@@ -56,32 +57,34 @@ public sealed partial class UpdateService : ObservableObject
     }
 
     /// <param name="handler">Network access; tests pass a handler that simulates being offline.</param>
-    internal UpdateService(ILogger<UpdateService> log, HttpMessageHandler handler)
+    internal UpdateService(ILogger<UpdateService> log, HttpMessageHandler handler, string? repositoryUrl = null)
     {
         _log = log;
+        _repositoryUrl = repositoryUrl ?? RepositoryUrl;
         // Downloads use their own stall timeout (StallTimeout); this one covers the API call and the response headers.
         _http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(20) };
-        _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Filee", CurrentVersion));
+        _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(Core.ProductIdentity.Name, CurrentVersion));
         _http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 
     /// <summary>GitHub repository from Directory.Build.props (FileeRepositoryUrl).</summary>
     public static string RepositoryUrl =>
         typeof(UpdateService).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-            .FirstOrDefault(a => a.Key == "RepositoryUrl")?.Value ?? "https://github.com/KnifeLemon/Filee";
+            .FirstOrDefault(a => a.Key == "RepositoryUrl")?.Value is { Length: > 0 } url ? url : Core.ProductIdentity.Website;
 
     public static string CurrentVersion =>
         typeof(UpdateService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
         ?? typeof(UpdateService).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
 
     /// <summary>GitHub's "new issue" page (bug report or feature request template).</summary>
-    public static string NewIssueUrl => RepositoryUrl.TrimEnd('/') + "/issues/new/choose";
+    public static string NewIssueUrl => HasRepository ? RepositoryUrl.TrimEnd('/') + "/issues/new/choose" : WebsiteUrl;
+    public static bool HasRepository => RepositoryUrl.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Release page with every file, including the portable zip.</summary>
-    public static string LatestReleaseUrl => RepositoryUrl.TrimEnd('/') + "/releases/latest";
+    public static string LatestReleaseUrl => HasRepository ? RepositoryUrl.TrimEnd('/') + "/releases/latest" : WebsiteUrl;
 
     /// <summary>The website: one big download button, friendlier than the GitHub release page.</summary>
-    public const string WebsiteUrl = "https://filee.sh/";
+    public const string WebsiteUrl = Core.ProductIdentity.Website;
 
     /// <summary>
     /// True when this copy was installed by Setup, which puts its uninstaller next to Filee.exe (uninstall.exe; the
@@ -149,9 +152,10 @@ public sealed partial class UpdateService : ObservableObject
     /// </summary>
     internal async Task<bool> RefreshAsync(bool announce, CancellationToken cancellationToken = default)
     {
+        if (!_repositoryUrl.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase)) return false;
         try
         {
-            var api = RepositoryUrl.TrimEnd('/').Replace("https://github.com/", "https://api.github.com/repos/", StringComparison.OrdinalIgnoreCase)
+            var api = _repositoryUrl.TrimEnd('/').Replace("https://github.com/", "https://api.github.com/repos/", StringComparison.OrdinalIgnoreCase)
                       + "/releases/latest";
             using var response = await _http.GetAsync(api, cancellationToken);
             if (!response.IsSuccessStatusCode)

@@ -48,6 +48,7 @@ public sealed class JobQueue : IAsyncDisposable
 
     /// <summary>True while a job waits in the queue or runs (the app frees memory only when this is false).</summary>
     public bool IsBusy => Volatile.Read(ref _busy) > 0;
+    public int MaximumParallelConversions { get; set; } = Environment.ProcessorCount;
 
     /// <summary>Adds a job to the queue and returns it immediately.</summary>
     /// <param name="fetcher">Saves sources that aren't files yet (files from a browser) when the job runs.</param>
@@ -106,13 +107,24 @@ public sealed class JobQueue : IAsyncDisposable
             else
                 await Parallel.ForEachAsync(
                     job.Files.Select((f, i) => (File: f, Index: i + 1)),
-                    new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = CancellationToken.None },
+                    new ParallelOptions { MaxDegreeOfParallelism = Math.Clamp(MaximumParallelConversions, 1, 64), CancellationToken = CancellationToken.None },
                     async (item, _) => await RunFileAsync(job, item.File, item.Index, planner, workDir, finalOutput: true));
 
             job.State = job.CancellationToken.IsCancellationRequested ? JobState.Cancelled
                 : job.Files.All(f => f.State is FileState.Done or FileState.Skipped) ? JobState.Completed
                 : job.Files.Any(f => f.State == FileState.Done) ? JobState.CompletedWithErrors
                 : JobState.Failed;
+            try { SourceDisposition.Apply(job); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                _log.LogWarning(ex, "Post-conversion source action failed for {Job}", job.Id);
+                job.State = JobState.CompletedWithErrors;
+                foreach (var file in job.Files.Where(f => f.State == FileState.Done))
+                {
+                    file.NoticeKey = "notice.source_action_failed";
+                    file.ErrorDetail = ex.Message;
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -660,7 +672,7 @@ public sealed class JobQueue : IAsyncDisposable
         });
 
     private FinalAllocator CreateFinalAllocator(ConversionJob job, string sourcePath, int index) =>
-        new(this, job.Preset.Output, new OutputPathResolver.Tokens(sourcePath, job.PresetDisplayName, index, job.CreatedAt));
+        new(this, job.Preset.Output, new OutputPathResolver.Tokens(sourcePath, job.PresetDisplayName, index, job.CreatedAt, job.Files.Count));
 
     private void Notify(ConversionJob job)
     {

@@ -82,6 +82,7 @@ public sealed class ConversionService
             // "Next to the source" is the download folder, also when the original is only kept until converted.
             preset = fetcher.Apply(preset);
         }
+        _queue.MaximumParallelConversions = _store.Settings.MaximumParallelConversions;
         var job = _queue.Enqueue(files, preset, _loc.DisplayName(preset), fetcher);
         var vm = new JobViewModel(job, _loc, _platform, Remove, RetryFailed);
         _byId[job.Id] = vm;

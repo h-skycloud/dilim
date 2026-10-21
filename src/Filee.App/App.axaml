@@ -24,5 +24,6 @@
     <StyleInclude Source="avares://Filee/Styles/Soft.axaml" />
     <StyleInclude Source="avares://Filee/Styles/Controls.axaml" />
     <StyleInclude Source="avares://Filee/Styles/TagEditor.axaml" />
+    <StyleInclude Source="avares://Filee/Styles/Dilim.axaml" />
   </Application.Styles>
 </Application>

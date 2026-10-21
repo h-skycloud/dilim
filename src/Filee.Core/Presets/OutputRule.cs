@@ -29,9 +29,14 @@ public enum ConflictPolicy
     Skip,
 }
 
+public enum SourceAction { Keep, Archive, Delete }
+
 /// <summary>Output placement and naming rules.</summary>
 public sealed class OutputRule
 {
+    /// <summary>Explicitly opt-in; applied only after the whole job completed successfully.</summary>
+    public SourceAction AfterConversion { get; set; }
+    public string ArchiveFolderName { get; set; } = "Originals";
     public OutputLocation Location { get; set; } = OutputLocation.Default;
 
     public string SubfolderName { get; set; } = "converted";

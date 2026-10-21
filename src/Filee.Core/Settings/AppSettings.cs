@@ -32,7 +32,7 @@ public sealed class ThemeSettings
     public ThemeMode Mode { get; set; } = ThemeMode.System;
 
     /// <summary>Accent colour as <c>#RRGGBB</c>.</summary>
-    public string Accent { get; set; } = "#7F77DD";
+    public string Accent { get; set; } = "#F35B28";
 
     /// <summary>Base corner radius in pixels. Larger = "softer" UI.</summary>
     public double CornerRadius { get; set; } = 16;
@@ -108,6 +108,7 @@ public sealed class DonutSettings
 /// <summary>All user settings except presets and profiles (which have their own files).</summary>
 public sealed class AppSettings
 {
+    public int MaximumParallelConversions { get; set; } = 2;
     /// <summary>Current schema version. Increase when the format changes and add a migration.</summary>
     public const int CurrentSchemaVersion = 30;
 
@@ -116,7 +117,7 @@ public sealed class AppSettings
     /// <summary><c>"auto"</c>, <c>"en"</c>, <c>"ko"</c> or <c>"zh-CN"</c>.</summary>
     public string Language { get; set; } = "auto";
 
-    public bool StartWithSystem { get; set; } = true;
+    public bool StartWithSystem { get; set; }
 
     /// <summary>Show the Explorer "Convert with Filee" context menu entry.</summary>
     public bool ContextMenuEnabled { get; set; } = true;
@@ -172,6 +173,8 @@ public sealed class AppSettings
     public DonutSettings Donut { get; set; } = new();
 
     public List<TriggerGesture> Triggers { get; set; } = TriggerGesture.Defaults();
+
+    public bool DilimGesturesInitialized { get; set; }
 
     /// <summary>Process names (without .exe) in which gestures never trigger.</summary>
     public List<string> ExcludedProcesses { get; set; } = [];
