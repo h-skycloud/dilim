@@ -54,4 +54,111 @@
   <Style Selector="Window.reduced-motion Border#FileDropZone">
     <Setter Property="Transitions" Value="{x:Null}" />
   </Style>
+  <!-- Shelf (Raf): one soft surface that takes drops, quiet rows that lift on hover, accent only for selection. -->
+  <Style Selector="Border.shelf-drop">
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SubtleBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource SoftRadius}" />
+    <Setter Property="BoxShadow" Value="{DynamicResource CardShadow}" />
+    <Setter Property="Padding" Value="6" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.16" />
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.16" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.shelf-drop.over">
+    <Setter Property="Background" Value="{DynamicResource AccentFaintBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="Border.shelf-item">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusSmall}" />
+    <Setter Property="Padding" Value="8,7" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <BrushTransition Property="Background" Duration="0:0:0.12" />
+        <DoubleTransition Property="Opacity" Duration="0:0:0.16" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.shelf-item:pointerover">
+    <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+  </Style>
+  <Style Selector="Border.shelf-item.selected">
+    <Setter Property="Background" Value="{DynamicResource AccentFaintBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentSoftBrush}" />
+  </Style>
+  <Style Selector="Border.shelf-item.missing">
+    <Setter Property="Opacity" Value="0.55" />
+  </Style>
+  <Style Selector="Border.shelf-item Button.shelf-remove">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+  <Style Selector="Border.shelf-item:pointerover Button.shelf-remove, Border.shelf-item.selected Button.shelf-remove">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="Button.shelf-remove">
+    <Setter Property="Padding" Value="6" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Transitions">
+      <Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.12" /></Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.shelf-badge">
+    <Setter Property="Width" Value="36" />
+    <Setter Property="Height" Value="36" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Background" Value="{DynamicResource AccentFaintBrush}" />
+  </Style>
+  <Style Selector="Border.shelf-badge TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.shelf-badge PathIcon">
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Width" Value="18" />
+    <Setter Property="Height" Value="18" />
+  </Style>
+  <Style Selector="Border.shelf-handle">
+    <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+    <Setter Property="CornerRadius" Value="999" />
+    <Setter Property="Padding" Value="12,7" />
+    <Setter Property="Cursor" Value="SizeAll" />
+  </Style>
+  <Style Selector="Border.shelf-handle:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+  </Style>
+  <Style Selector="Button.shelf-tool, ToggleButton.shelf-pin">
+    <Setter Property="Padding" Value="8" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Button.shelf-tool:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Opacity" Value="0.4" />
+  </Style>
+  <Style Selector="ToggleButton.shelf-pin">
+    <Setter Property="Padding" Value="8" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="ToggleButton.shelf-pin:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="Window.reduced-motion Border.shelf-drop, Window.reduced-motion Border.shelf-item, Window.reduced-motion Button.shelf-remove">
+    <Setter Property="Transitions" Value="{x:Null}" />
+  </Style>
 </Styles>

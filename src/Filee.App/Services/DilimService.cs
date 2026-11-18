@@ -11,6 +11,7 @@ using Filee.Core.Localization;
 using Filee.Core.Presets;
 using Filee.Core.Profiles;
 using Filee.Core.Settings;
+using Filee.Core.Shelf;
 using Filee.Engines.Dilim;
 
 namespace Filee.App.Services;
@@ -19,6 +20,19 @@ namespace Filee.App.Services;
 public sealed class DilimService(ILocalizer loc, WindowService windows, ConversionService conversions, UserDataStore store)
 {
     private ShelfWindow? _shelf;
+    private ShelfList? _shelfList;
+
+    /// <summary>The shelf's references, kept next to the settings so they survive a restart.</summary>
+    public ShelfList Shelf => _shelfList ??= new ShelfList(store.Directory);
+
+    /// <summary>Shows the shelf, adding <paramref name="files"/> to it first.</summary>
+    public void ShowShelf(IReadOnlyList<string>? files = null)
+    {
+        _shelf ??= new ShelfWindow(loc, Shelf);
+        if (files is { Count: > 0 }) _shelf.Add(files);
+        _shelf.Show();
+        _shelf.Activate();
+    }
 
     /// <summary>Upgrade only the untouched two-gesture defaults. Custom bindings remain intact.</summary>
     public static void EnsureGestures(UserDataStore store)
@@ -55,10 +69,7 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
         }
         if (id == "float")
         {
-            _shelf ??= new ShelfWindow(loc);
-            _shelf.Add(files);
-            _shelf.Show();
-            _shelf.Activate();
+            ShowShelf(files);
             return;
         }
         var tool = new ToolWindow(id, files, loc, RunAsync);
