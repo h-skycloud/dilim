@@ -35,9 +35,9 @@ The production EngineInstaller successfully verified, extracted, marked and ran 
 ## Product and packaging
 
 - New Dilim contributors icon, attribution, website, title and version 0.1.0.
-- Independent per-user installation, settings, cache, IPC, Explorer registry key, startup value and installation GUID. Original Filee remains separately identifiable.
+- Independent per-user installation, settings, cache, IPC, Explorer registry key, startup value and installation GUID. Original Dilim remains separately identifiable.
 - Modern Explorer package family was checked using Windows' family-name calculation: Dilim.Dilim.ExplorerMenu_qp53ahev3283g. Classic Explorer integration is the default; optional modern registration was not applied to the user's Windows installation.
-- The actual Setup payload passed sandbox install, update and uninstall. Foreign files, settings and a stand-in upstream Filee installation survived. Evidence: ignored artifacts/dilim-installer-validation.json.
+- The actual Setup payload passed sandbox install, update and uninstall. Foreign files, settings and a stand-in Filee installation survived. Evidence: ignored artifacts/dilim-installer-validation.json.
 - Public installer/portable omit optional engine executables; first run offers pinned checksum-verified upstream downloads. Local offline builds carry separate engine redistribution/source obligations described in OPEN-SOURCE.md.
 - Release source enumeration excludes ignored data, history, references, caches and generated outputs. Public artifacts omit development PDBs.
 - No FileConverter uninstall, GitHub repository creation, public upload or real Explorer/startup registration was performed.

@@ -1,0 +1,18 @@
+<!--
+  Dilim.Core: platform- and UI-independent domain model.
+  Formats, presets, toolbar profiles, settings and the conversion pipeline live here.
+  This project must not reference Avalonia or any OS-specific API.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Dilim.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dilim.Core.Tests" />
+  </ItemGroup>
+</Project>

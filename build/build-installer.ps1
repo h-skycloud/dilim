@@ -1,18 +1,18 @@
 <#
 .SYNOPSIS
-  Builds the Windows installer Filee-<version>-win-Setup.exe (Filee's own, src/Filee.Setup) and, with -Portable, the
+  Builds the Windows installer Dilim-<version>-win-Setup.exe (Dilim's own, src/Dilim.Setup) and, with -Portable, the
   portable zip, into -OutputDir.
 
 .DESCRIPTION
-  Without -PublishDir the app is published first (Release, self-contained, -p:FileeRelease=true) into
+  Without -PublishDir the app is published first (Release, self-contained, -p:DilimRelease=true) into
   publish/win-x64, together with the Windows 11 Explorer menu extension (build-explorer-menu.ps1), the bundled
-  small engines rhwp and 7-Zip and the Microsoft C++ runtime DLLs next to rhwp.exe and Filee.exe
+  small engines rhwp and 7-Zip and the Microsoft C++ runtime DLLs next to rhwp.exe and Dilim.exe
   (fetch-engines.ps1); the large engines are downloaded by the app (engines.json).
 
-  Setup itself (src/Filee.Setup) is published as one self-contained, trimmed program (no .NET needed on the PC);
+  Setup itself (src/Dilim.Setup) is published as one self-contained, trimmed program (no .NET needed on the PC);
   build/tools/make-setup.cs appends the publish folder to it as an LZMA payload with a SHA-256 manifest, and the
   engines Setup offers from EngineDownloads. The portable zip is the publish folder as it is: without Setup's
-  uninstall.exe next to Filee.exe, Filee knows it is a portable copy.
+  uninstall.exe next to Dilim.exe, Dilim knows it is a portable copy.
 
 .PARAMETER CheckOnly
   Builds Setup around a stub app (fast compression) and runs it in a sandbox: install, update and uninstall into a
@@ -27,7 +27,7 @@
 param(
     # Defaults to <Version> in Directory.Build.props.
     [string]$Version,
-    # A finished publish folder (Filee.exe, FileeExplorerMenu.dll/.msix, engines\); skips publishing.
+    # A finished publish folder (Dilim.exe, DilimExplorerMenu.dll/.msix, engines\); skips publishing.
     [string]$PublishDir,
     [string]$OutputDir = (Join-Path $PSScriptRoot '..\Releases'),
     [switch]$Portable,
@@ -50,13 +50,13 @@ New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 $OutputDir = (Resolve-Path $OutputDir).Path
 
 if ($CheckOnly) {
-    # A stand-in app: Setup only needs files, Filee.exe among them.
+    # A stand-in app: Setup only needs files, Dilim.exe among them.
     $check = Join-Path $cache 'installer-check'
     Remove-Item $check -Recurse -Force -ErrorAction SilentlyContinue
     $PublishDir = Join-Path $check 'app'
     New-Item -ItemType Directory -Force -Path (Join-Path $PublishDir 'cli'), (Join-Path $PublishDir 'engines\rhwp') | Out-Null
-    Set-Content (Join-Path $PublishDir 'Filee.exe') 'stub' -NoNewline
-    Set-Content (Join-Path $PublishDir 'cli\filee.cmd') "@`"%~dp0..\filee-cli.exe`" %*" -Encoding ascii
+    Set-Content (Join-Path $PublishDir 'Dilim.exe') 'stub' -NoNewline
+    Set-Content (Join-Path $PublishDir 'cli\dilim.cmd') "@`"%~dp0..\dilim-cli.exe`" %*" -Encoding ascii
     Set-Content (Join-Path $PublishDir 'engines\rhwp\rhwp.exe') 'stub' -NoNewline
     $OutputDir = $check
 }
@@ -64,29 +64,29 @@ elseif (-not $PublishDir) {
     $PublishDir = Join-Path $root 'publish\win-x64'
     Remove-Item $PublishDir -Recurse -Force -ErrorAction SilentlyContinue
     Invoke-Checked 'dotnet publish' {
-        dotnet publish (Join-Path $root 'src\Filee.App\Filee.App.csproj') -c Release -r win-x64 --self-contained `
-            "-p:Version=$Version" -p:PublishReadyToRun=true -p:FileeRelease=true -o $PublishDir
+        dotnet publish (Join-Path $root 'src\Dilim.App\Dilim.App.csproj') -c Release -r win-x64 --self-contained `
+            "-p:Version=$Version" -p:PublishReadyToRun=true -p:DilimRelease=true -o $PublishDir
     }
-    # The command line, in the same folder so it shares the runtime and the engines (filee-cli.exe). Its name can't
-    # be filee.exe next to Filee.exe, so the "filee" command is cli\filee.cmd, which Setup can put on PATH.
+    # The command line, in the same folder so it shares the runtime and the engines (dilim-cli.exe). Its name can't
+    # be dilim.exe next to Dilim.exe, so the "dilim" command is cli\dilim.cmd, which Setup can put on PATH.
     Invoke-Checked 'dotnet publish (cli)' {
-        dotnet publish (Join-Path $root 'src\Filee.Cli\Filee.Cli.csproj') -c Release -r win-x64 --self-contained `
-            "-p:Version=$Version" -p:PublishReadyToRun=true -p:FileeRelease=true -o $PublishDir
+        dotnet publish (Join-Path $root 'src\Dilim.Cli\Dilim.Cli.csproj') -c Release -r win-x64 --self-contained `
+            "-p:Version=$Version" -p:PublishReadyToRun=true -p:DilimRelease=true -o $PublishDir
     }
     # Native debug symbols from NuGet packages (libSkiaSharp.pdb, libHarfBuzzSharp.pdb: ~105 MB) are useless to users.
-    # Filee.App's publish removes them, but publishing the command line into the same folder brings them back.
+    # Dilim.App's publish removes them, but publishing the command line into the same folder brings them back.
     Get-ChildItem $PublishDir -Filter 'lib*.pdb' | Remove-Item
     New-Item -ItemType Directory -Force -Path (Join-Path $PublishDir 'cli') | Out-Null
-    Set-Content (Join-Path $PublishDir 'cli\filee.cmd') "@`"%~dp0..\filee-cli.exe`" %*" -Encoding ascii
-    # Next to Filee.exe: the Explorer menu package's external location is the install folder.
+    Set-Content (Join-Path $PublishDir 'cli\dilim.cmd') "@`"%~dp0..\dilim-cli.exe`" %*" -Encoding ascii
+    # Next to Dilim.exe: the Explorer menu package's external location is the install folder.
     & (Join-Path $PSScriptRoot 'build-explorer-menu.ps1') -Destination $PublishDir -Version $Version
     # Only the small rhwp and 7-Zip are bundled; the app downloads the others when the user picks them. The Microsoft
-    # C++ runtime goes next to rhwp.exe and next to Filee.exe (unhwp.dll imports VCRUNTIME140.dll), so neither needs
+    # C++ runtime goes next to rhwp.exe and next to Dilim.exe (unhwp.dll imports VCRUNTIME140.dll), so neither needs
     # the Visual C++ Redistributable (#248).
     & (Join-Path $PSScriptRoot 'fetch-engines.ps1') -Only rhwp, 7zip -Destination (Join-Path $PublishDir 'engines') -RuntimeTo $PublishDir
 }
 $PublishDir = (Resolve-Path $PublishDir).Path
-if (-not (Test-Path (Join-Path $PublishDir 'Filee.exe'))) { throw "Filee.exe is missing in $PublishDir" }
+if (-not (Test-Path (Join-Path $PublishDir 'Dilim.exe'))) { throw "Dilim.exe is missing in $PublishDir" }
 if (-not $CheckOnly) {
     # Without them rhwp and unhwp fail on PCs without the Visual C++ Redistributable (#248). They go into the payload
     # and the portable zip; Setup checks again after unpacking (RuntimeCheck) on the user's PC.
@@ -99,20 +99,20 @@ if (-not $CheckOnly) {
     }
 }
 
-# Setup: one self-contained, trimmed program (src/Filee.Setup).
+# Setup: one self-contained, trimmed program (src/Dilim.Setup).
 $setupProgram = Join-Path $cache 'setup'
 Remove-Item $setupProgram -Recurse -Force -ErrorAction SilentlyContinue
 Invoke-Checked 'dotnet publish (setup)' {
-    dotnet publish (Join-Path $root 'src\Filee.Setup\Filee.Setup.csproj') -c Release -r win-x64 -p:FileeSetupPublish=true `
+    dotnet publish (Join-Path $root 'src\Dilim.Setup\Dilim.Setup.csproj') -c Release -r win-x64 -p:DilimSetupPublish=true `
         "-p:Version=$Version" -o $setupProgram
 }
 
-$setupExe = Join-Path $OutputDir "Filee-$Version-win-Setup.exe"
+$setupExe = Join-Path $OutputDir "Dilim-$Version-win-Setup.exe"
 Write-Host "pack installer $Version"
 $fast = @(if ($CheckOnly) { '--fast' })
 Push-Location $root
 try {
-    $program = Join-Path $setupProgram 'Filee.Setup.exe'
+    $program = Join-Path $setupProgram 'Dilim.Setup.exe'
     Invoke-Checked 'make-setup' { dotnet run --no-cache build/tools/make-setup.cs -- $program $PublishDir $Version $setupExe @fast }
 }
 finally {
@@ -130,14 +130,14 @@ if ($CheckOnly) {
             throw "$(Split-Path $exe -Leaf) $arguments failed with exit code $($process.ExitCode)"
         }
     }
-    $installed = Join-Path $sandbox 'Program Files\Filee'
+    $installed = Join-Path $sandbox 'Program Files\Dilim'
     Invoke-Setup $setupExe @('/MERGETASKS=desktopicon')
-    foreach ($file in 'Filee.exe', 'cli\filee.cmd', 'engines\rhwp\rhwp.exe', 'uninstall.exe', 'uninstall.json') {
+    foreach ($file in 'Dilim.exe', 'cli\dilim.cmd', 'engines\rhwp\rhwp.exe', 'uninstall.exe', 'uninstall.json') {
         if (-not (Test-Path (Join-Path $installed $file))) { throw "Setup did not install $file" }
     }
     $registry = Get-Content (Join-Path $sandbox 'registry.json') -Raw
     if ($registry -notmatch 'C8686E06-8327-40A2-B0F7-3DEDD61D9248\}_is1' -or $registry -notmatch 'uninstall\.exe') { throw 'Setup did not write the uninstall entry' }
-    if (-not (Test-Path (Join-Path $sandbox 'Public\Desktop\Filee.lnk'))) { throw 'Setup did not create the desktop shortcut' }
+    if (-not (Test-Path (Join-Path $sandbox 'Public\Desktop\Dilim.lnk'))) { throw 'Setup did not create the desktop shortcut' }
     Invoke-Setup $setupExe @()
     Invoke-Setup (Join-Path $installed 'uninstall.exe') @()
     if (Test-Path $installed) { throw "The uninstaller left $installed" }
@@ -148,7 +148,7 @@ if ($CheckOnly) {
 
 $files = @($setupExe)
 if ($Portable) {
-    $zip = Join-Path $OutputDir "Filee-$Version-win-Portable.zip"
+    $zip = Join-Path $OutputDir "Dilim-$Version-win-Portable.zip"
     Remove-Item $zip -ErrorAction SilentlyContinue
     Write-Host "zip  $zip"
     Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -157,7 +157,7 @@ if ($Portable) {
 }
 
 # Checksums for people who verify their download.
-$sums = Join-Path $OutputDir "Filee-$Version-SHA256SUMS.txt"
+$sums = Join-Path $OutputDir "Dilim-$Version-SHA256SUMS.txt"
 $files | ForEach-Object { "$((Get-FileHash $_ -Algorithm SHA256).Hash.ToLowerInvariant())  $(Split-Path $_ -Leaf)" } |
     Set-Content $sums -Encoding ascii
 Get-Item ($files + $sums) | Format-Table Name, Length

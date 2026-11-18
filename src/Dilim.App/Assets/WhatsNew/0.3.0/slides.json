@@ -1,0 +1,10 @@
+{
+  "version": "0.3.0",
+  "slides": [
+    { "id": "shelf", "media": "shelf.webp", "poster": 7, "title": "whats_new.0_3_0.shelf.title", "text": "whats_new.0_3_0.shelf.text" },
+    { "id": "pie", "media": "pie.webp", "title": "whats_new.0_3_0.pie.title", "text": "whats_new.0_3_0.pie.text" },
+    { "id": "catalog", "media": "catalog.webp", "title": "whats_new.0_3_0.catalog.title", "text": "whats_new.0_3_0.catalog.text" },
+    { "id": "theme", "media": "theme.webp", "title": "whats_new.0_3_0.theme.title", "text": "whats_new.0_3_0.theme.text" },
+    { "id": "identity", "media": "languages.webp", "title": "whats_new.0_3_0.identity.title", "text": "whats_new.0_3_0.identity.text" }
+  ]
+}

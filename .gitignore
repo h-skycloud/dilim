@@ -28,5 +28,5 @@ Thumbs.db
 .DS_Store
 
 # Fonts are downloaded by build/fetch-fonts.ps1
-src/Filee.App/Assets/Fonts/*.ttf
-src/Filee.App/Assets/Fonts/*.otf
+src/Dilim.App/Assets/Fonts/*.ttf
+src/Dilim.App/Assets/Fonts/*.otf

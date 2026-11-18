@@ -2,11 +2,11 @@
 
 ## Build and package
 
-- `dotnet build Filee.slnx --no-restore`: succeeded, 0 errors. Existing upstream nullable warnings remain.
+- `dotnet build Dilim.slnx --no-restore`: succeeded, 0 errors. Existing upstream nullable warnings remain.
 - `build/build-dilim.ps1 -SkipEngines`: self-contained Windows x64 app and Windows share helper published successfully.
 - Portable app DLL SHA-256 matched the Release build output after publishing.
 - Checksum-pinned FFmpeg 9.0.2 and 7-Zip 26.03 fetched by the upstream build script and bundled with their licenses.
-- `dotnet format Filee.slnx --verify-no-changes --no-restore`: passed after the last source changes.
+- `dotnet format Dilim.slnx --verify-no-changes --no-restore`: passed after the last source changes.
 - `git diff --check`: passed.
 - Nine locales have 1,036 identical keys and matching numbered-placeholder sets. Repeated placeholders may differ by language.
 

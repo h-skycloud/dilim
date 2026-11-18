@@ -20,11 +20,11 @@ New-Item -ItemType Directory -Path $taskOutput -Force | Out-Null
 function Invoke-DilimChecked([scriptblock]$Action) { & $Action; if ($LASTEXITCODE -ne 0) { throw "Build command failed ($LASTEXITCODE)." } }
 Push-Location $taskRoot
 try {
-    Invoke-DilimChecked { dotnet publish src/Filee.App -c Release -r win-x64 --self-contained true -p:FileeRelease=true -p:DebugType=None -p:DebugSymbols=false "-p:Version=$Version" "-p:FileeRepositoryUrl=$RepositoryUrl" -o $taskStage }
-    Invoke-DilimChecked { dotnet publish src/Filee.Share -c Release -r win-x64 --self-contained true -p:DebugType=None -p:DebugSymbols=false "-p:Version=$Version" -o (Join-Path $taskStage 'share') }
-    Invoke-DilimChecked { dotnet publish src/Filee.Cli -c Release -r win-x64 --self-contained true -p:DebugType=None -p:DebugSymbols=false "-p:Version=$Version" -o $taskStage }
+    Invoke-DilimChecked { dotnet publish src/Dilim.App -c Release -r win-x64 --self-contained true -p:DilimRelease=true -p:DebugType=None -p:DebugSymbols=false "-p:Version=$Version" "-p:DilimRepositoryUrl=$RepositoryUrl" -o $taskStage }
+    Invoke-DilimChecked { dotnet publish src/Dilim.Share -c Release -r win-x64 --self-contained true -p:DebugType=None -p:DebugSymbols=false "-p:Version=$Version" -o (Join-Path $taskStage 'share') }
+    Invoke-DilimChecked { dotnet publish src/Dilim.Cli -c Release -r win-x64 --self-contained true -p:DebugType=None -p:DebugSymbols=false "-p:Version=$Version" -o $taskStage }
     New-Item -ItemType Directory -Path (Join-Path $taskStage 'cli') -Force | Out-Null
-    Set-Content -LiteralPath (Join-Path $taskStage 'cli/dilim.cmd') -Value '@"%~dp0..\filee-cli.exe" %*' -Encoding ascii
+    Set-Content -LiteralPath (Join-Path $taskStage 'cli/dilim.cmd') -Value '@"%~dp0..\dilim-cli.exe" %*' -Encoding ascii
     if ($BundleEngines -and -not $SkipEngines) { & (Join-Path $PSScriptRoot 'fetch-engines.ps1') -Only @('rhwp','ffmpeg','7zip') }
     foreach ($taskEngine in @(if ($BundleEngines) { 'rhwp'; 'ffmpeg'; '7zip' })) {
         $taskSource = Join-Path $taskRoot "engines/$taskEngine"
@@ -37,12 +37,12 @@ try {
     foreach ($taskFile in @('LICENSE','THIRD-PARTY-NOTICES.md','README.md','OPEN-SOURCE.md')) { Copy-Item -LiteralPath (Join-Path $taskRoot $taskFile) -Destination $taskStage -Force }
     Copy-Item -LiteralPath (Join-Path $taskRoot 'docs/DILIM-REHBER.html') -Destination (Join-Path $taskStage 'KULLANIM-REHBERI.html') -Force
     Copy-Item -LiteralPath (Join-Path $taskRoot 'docs/DILIM-REHBER.md') -Destination (Join-Path $taskStage 'KULLANIM-REHBERI.md') -Force
-    Copy-Item -LiteralPath (Join-Path $taskRoot 'src/Filee.Engines/Infrastructure/engines.json') -Destination (Join-Path $taskStage 'ENGINE-VERSIONS.json') -Force
+    Copy-Item -LiteralPath (Join-Path $taskRoot 'src/Dilim.Engines/Infrastructure/engines.json') -Destination (Join-Path $taskStage 'ENGINE-VERSIONS.json') -Force
     if (Test-Path -LiteralPath (Join-Path $taskStage 'data')) { throw 'User data must never be included in a release.' }
-    Invoke-DilimChecked { dotnet publish src/Filee.Setup -c Release -r win-x64 -p:FileeSetupPublish=true "-p:Version=$Version" "-p:FileeRepositoryUrl=$RepositoryUrl" -o $taskSetupStage }
+    Invoke-DilimChecked { dotnet publish src/Dilim.Setup -c Release -r win-x64 -p:DilimSetupPublish=true "-p:Version=$Version" "-p:DilimRepositoryUrl=$RepositoryUrl" -o $taskSetupStage }
     $taskInstaller = Join-Path $taskOutput "$taskProduct-$Version-win-Setup.exe"
     $taskFast = @(if ($FastCompression) { '--fast' })
-    Invoke-DilimChecked { dotnet run --no-cache build/tools/make-setup.cs -- (Join-Path $taskSetupStage 'Filee.Setup.exe') $taskStage $Version $taskInstaller @taskFast }
+    Invoke-DilimChecked { dotnet run --no-cache build/tools/make-setup.cs -- (Join-Path $taskSetupStage 'Dilim.Setup.exe') $taskStage $Version $taskInstaller @taskFast }
     # Only the portable ZIP gets the launcher which redirects data beside the executable.
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Dilim.vbs') -Destination (Join-Path $taskStage 'Dilim Başlat.vbs') -Force
     $taskZip = Join-Path $taskOutput "$taskProduct-$Version-win-Portable.zip"

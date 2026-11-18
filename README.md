@@ -1,6 +1,6 @@
 # Dilim
 
-<img src="src/Filee.App/Assets/Icons/filee.png" width="112" alt="Dilim four-slice icon">
+<img src="src/Dilim.App/Assets/Icons/dilim.png" width="112" alt="Dilim four-slice icon">
 
 A local, open-source Windows file converter with a radial menu.
 
@@ -8,7 +8,7 @@ A local, open-source Windows file converter with a radial menu.
 
 ## Use
 
-Install `Dilim-0.2.0-win-Setup.exe`, or extract the portable ZIP and run `Dilim Başlat.vbs`. No separate .NET installation is required. Select a file in Explorer and press **Ctrl + Alt + Space**. **Ctrl + Alt + T** opens tools; **Ctrl + Alt + A** opens file actions. Tab flips the pie; Escape closes it.
+Install `Dilim-0.3.0-win-Setup.exe`, or extract the portable ZIP and run `Dilim Başlat.vbs`. No separate .NET installation is required. Select a file in Explorer and press **Ctrl + Alt + Space**. **Ctrl + Alt + T** opens tools; **Ctrl + Alt + A** opens file actions. Tab flips the pie; Escape closes it.
 
 Choose FFmpeg and 7-Zip on first run for video/audio and archive operations. Engines are downloaded from pinned, checksum-verified original releases. After installation conversions work offline. Files are processed locally; media is not uploaded. The app has no personal-website shortcut.
 
@@ -30,7 +30,7 @@ Use the SDK pinned in `global.json`, Git and PowerShell 7:
 
 ```powershell
 ./build/fetch-fonts.ps1
-dotnet build Filee.slnx
+dotnet build Dilim.slnx
 ./build/fetch-engines.ps1 -Only ffmpeg,7zip
 ./build/build-dilim-release.ps1 -RepositoryUrl https://github.com/h-skycloud/dilim
 ./build/check-dilim-installer.ps1
@@ -40,6 +40,6 @@ dotnet build Filee.slnx
 
 See [release/build guide](docs/DILIM-RELEASE.md), [conversion validation](docs/DILIM-VALIDATION.md) and [contribution guide](CONTRIBUTING.md).
 
-## Origin and licenses
+## License
 
-Dilim is developed from [Filee by KnifeLemon and contributors](https://github.com/KnifeLemon/Filee). The original MIT attribution is retained. Internal `Filee.*` assemblies and namespace identifiers remain technical implementation details. Dependencies keep their own licenses; see THIRD-PARTY-NOTICES.md. FileConverter's configuration/behavior is a compatibility reference; its GPL source implementation is not incorporated into Dilim.
+Dilim is open source under the MIT license; see [LICENSE](LICENSE) and [OPEN-SOURCE.md](OPEN-SOURCE.md). Dependencies and optional engines keep their own licenses; see THIRD-PARTY-NOTICES.md. FileConverter's configuration/behavior is a compatibility reference; its GPL source is not incorporated into Dilim.

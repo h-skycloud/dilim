@@ -1,13 +1,13 @@
-#:project ../../src/Filee.Engines/Filee.Engines.csproj
+#:project ../../src/Dilim.Engines/Dilim.Engines.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
 using System.Security.Cryptography;
 using System.Text.Json;
-using Filee.Core.Conversion;
-using Filee.Core.Presets;
-using Filee.Core.Settings;
-using Filee.Engines;
-using Filee.Engines.Infrastructure;
-using Filee.Engines.Media;
+using Dilim.Core.Conversion;
+using Dilim.Core.Presets;
+using Dilim.Core.Settings;
+using Dilim.Engines;
+using Dilim.Engines.Infrastructure;
+using Dilim.Engines.Media;
 using ImageMagick;
 
 if (args.Length < 2) throw new ArgumentException("settings.xml output-directory [import-data-directory]");

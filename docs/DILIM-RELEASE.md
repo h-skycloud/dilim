@@ -1,6 +1,6 @@
 # Dilim release guide
 
-Repository: https://github.com/h-skycloud/dilim . Current version: 0.2.0.
+Repository: https://github.com/h-skycloud/dilim . Current version: 0.3.0.
 
 ## Build
 
@@ -23,10 +23,10 @@ Offline `-BundleEngines` is for local testing until the exact engine correspondi
 Run projects sequentially because generated files are shared.
 
 ```powershell
-dotnet test tests/Filee.Core.Tests
-dotnet test tests/Filee.Setup.Tests
-dotnet test tests/Filee.App.Tests --filter "FullyQualifiedName~CatalogTests|FullyQualifiedName~DilimBrandingTests|FullyQualifiedName~ConversionSettingsTests|FullyQualifiedName~LocalizationTests|FullyQualifiedName~SingleInstanceTests|FullyQualifiedName~UpdateServiceTests|FullyQualifiedName~DilimPieTests"
-dotnet test tests/Filee.Engines.Tests --filter "FullyQualifiedName~FileConverterParityTests|FullyQualifiedName~VideoTuningTests|FullyQualifiedName~PdfCompressionTests|FullyQualifiedName~DilimToolTests|FullyQualifiedName~EngineInstallerTests"
+dotnet test tests/Dilim.Core.Tests
+dotnet test tests/Dilim.Setup.Tests
+dotnet test tests/Dilim.App.Tests --filter "FullyQualifiedName~CatalogTests|FullyQualifiedName~DilimBrandingTests|FullyQualifiedName~ConversionSettingsTests|FullyQualifiedName~LocalizationTests|FullyQualifiedName~SingleInstanceTests|FullyQualifiedName~UpdateServiceTests|FullyQualifiedName~DilimPieTests"
+dotnet test tests/Dilim.Engines.Tests --filter "FullyQualifiedName~FileConverterParityTests|FullyQualifiedName~VideoTuningTests|FullyQualifiedName~PdfCompressionTests|FullyQualifiedName~DilimToolTests|FullyQualifiedName~EngineInstallerTests"
 ```
 
 Full upstream engine validation has eight known OFD failures reproduced in the pristine base; do not claim it all passes. See DILIM-INITIAL-VALIDATION.md and DILIM-VALIDATION.md.

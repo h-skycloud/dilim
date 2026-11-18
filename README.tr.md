@@ -12,4 +12,4 @@ Dosyalarını bilgisayarında dönüştüren, açık kaynaklı Windows uygulamas
 
 Fotoğraf/PDF/video/ses dönüştürme ve sıkıştırma, düzenlenebilir pie menüleri, işlem kuyruğu ve geçmiş bulunur. İşlemler yereldir; dosyalar sunucuya yüklenmez. Yeni kurulumda motor indirmek için internet gerekir.
 
-Ayarlar: `%APPDATA%/Dilim`. Kaynak ve lisanslar: [README](README.md), [LICENSE](LICENSE), [OPEN-SOURCE.md](OPEN-SOURCE.md). Filee'nin MIT temeli ve özgün atıfları korunur.
+Ayarlar: `%APPDATA%/Dilim`. Raf (Ctrl + Alt + A → Raf ya da tepsi menüsü) dosya bağlantılarını yeniden başlatmadan sonra da tutar. Kaynak ve lisanslar: [README](README.md), [LICENSE](LICENSE), [OPEN-SOURCE.md](OPEN-SOURCE.md). Dilim MIT lisanslı açık kaynak yazılımdır.

@@ -16,15 +16,15 @@ if (-not (Test-Path -LiteralPath $settingsPath)) {
     } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $settingsPath -Encoding utf8
 }
 
-$previousDataDirectory = $env:FILEE_DATA_DIR
+$previousDataDirectory = $env:DILIM_DATA_DIR
 try {
-    # Filee also uses this to leave Windows startup and Explorer registrations alone.
-    $env:FILEE_DATA_DIR = $dataDirectory
-    $runArguments = @('run', '--project', (Join-Path $repository 'src/Filee.App'))
+    # Dilim also uses this to leave Windows startup and Explorer registrations alone.
+    $env:DILIM_DATA_DIR = $dataDirectory
+    $runArguments = @('run', '--project', (Join-Path $repository 'src/Dilim.App'))
     if ($NoBuild) { $runArguments += '--no-build' }
     & dotnet @runArguments
-    if ($LASTEXITCODE -ne 0) { throw "Filee exited with code $LASTEXITCODE." }
+    if ($LASTEXITCODE -ne 0) { throw "Dilim exited with code $LASTEXITCODE." }
 }
 finally {
-    $env:FILEE_DATA_DIR = $previousDataDirectory
+    $env:DILIM_DATA_DIR = $previousDataDirectory
 }

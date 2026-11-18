@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
   Downloads and prepares conversion engines for development and for the installer (which bundles rhwp and 7-Zip
-  only; the app downloads the large engines on demand, see src/Filee.Engines/Infrastructure/EngineInstaller.cs).
+  only; the app downloads the large engines on demand, see src/Dilim.Engines/Infrastructure/EngineInstaller.cs).
 
 .DESCRIPTION
-  Produces this layout (next to Filee.exe in a published build, or in the repo root for development):
+  Produces this layout (next to Dilim.exe in a published build, or in the repo root for development):
 
     engines/
       libreoffice/   LibreOffice (MPL-2.0), extracted from the official MSI via an administrative install
@@ -19,13 +19,13 @@
       calibre/       calibre (GPL-3.0, separate program), extracted from the official MSI via an administrative
                      install: ebook-convert for LIT, LRF, PDB, ... and MOBI / AZW3 output
 
-  Every download is pinned to a version and verified with SHA-256 (src/Filee.Engines/Infrastructure/engines.json,
+  Every download is pinned to a version and verified with SHA-256 (src/Dilim.Engines/Infrastructure/engines.json,
   shared with the app). Downloads are cached in build/.cache.
 
   The Microsoft C++ runtime (the "vcruntime" component: MSVCP140.dll, VCRUNTIME140.dll, ...) is copied next to the
   programs built with Visual C++ that do not ship it themselves (rhwp.exe, gswin64c.exe; LibreOffice's own copy goes
   into its program folder), so they also run on PCs without the Visual C++ Redistributable. -RuntimeTo copies it into
-  more folders (build-installer.ps1: next to Filee.exe, for unhwp.dll).
+  more folders (build-installer.ps1: next to Dilim.exe, for unhwp.dll).
 
 .PARAMETER Destination
   Target "engines" folder. Default: <repo>/engines (picked up automatically by debug builds).
@@ -53,7 +53,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue' # Invoke-WebRequest is ~10x faster without the progress bar
 
 # Versions, URLs and hashes come from the same list the app uses for on-demand downloads.
-$manifest = Get-Content (Join-Path $PSScriptRoot '..\src\Filee.Engines\Infrastructure\engines.json') -Raw | ConvertFrom-Json
+$manifest = Get-Content (Join-Path $PSScriptRoot '..\src\Dilim.Engines\Infrastructure\engines.json') -Raw | ConvertFrom-Json
 $engines = [ordered]@{}
 foreach ($component in $manifest.components.PSObject.Properties) {
     $engines[$component.Name] = @{ Url = $component.Value.url; Sha256 = $component.Value.sha256 }

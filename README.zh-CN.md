@@ -1,5 +1,5 @@
-# Dilim — Dilim contributors
+# Dilim
 
-This is the Dilim contributors distribution based on Filee (MIT). See [README](README.md) and [attribution](OPEN-SOURCE.md).
+A local, open-source Windows file converter with a radial menu. See the [English README](README.md) or the [Turkish guide](README.tr.md).
 
-Website: https://hgkstudio.com.tr/
+Repository: https://github.com/h-skycloud/dilim · Website: https://hgkstudio.com.tr/

@@ -1,5 +1,5 @@
-#:project ../../src/Filee.Platform.Windows/Filee.Platform.Windows.csproj
-using Filee.Platform.Windows;
+#:project ../../src/Dilim.Platform.Windows/Dilim.Platform.Windows.csproj
+using Dilim.Platform.Windows;
 if (!OperatingSystem.IsWindows()) return 0;
 var family = ExplorerMenuRegistration.ComputeFamilyName();
 Console.WriteLine(family);

@@ -6,9 +6,9 @@ $destination = Join-Path $repository 'artifacts/Dilim-Windows'
 if (-not $SkipEngines) {
     & (Join-Path $PSScriptRoot 'fetch-engines.ps1') -Only @('ffmpeg', '7zip')
 }
-& dotnet publish (Join-Path $repository 'src/Filee.App') -c Release -r win-x64 --self-contained true -o $destination
+& dotnet publish (Join-Path $repository 'src/Dilim.App') -c Release -r win-x64 --self-contained true -o $destination
 if ($LASTEXITCODE -ne 0) { throw 'Application publish failed.' }
-& dotnet publish (Join-Path $repository 'src/Filee.Share') -c Release -r win-x64 --self-contained true -o (Join-Path $destination 'share')
+& dotnet publish (Join-Path $repository 'src/Dilim.Share') -c Release -r win-x64 --self-contained true -o (Join-Path $destination 'share')
 if ($LASTEXITCODE -ne 0) { throw 'Share helper publish failed.' }
 foreach ($engine in @('ffmpeg', '7zip')) {
     $source = Join-Path $repository "engines/$engine"

@@ -1,0 +1,29 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Dilim.App"
+             x:Class="Dilim.App.App"
+             Name="Dilim"
+             RequestedThemeVariant="Default">
+
+  <Application.DataTemplates>
+    <!-- Maps FooPageViewModel → FooPage view (see ViewLocator.cs). -->
+    <local:ViewLocator />
+  </Application.DataTemplates>
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://Dilim/Styles/Icons.axaml" />
+        <ResourceInclude Source="avares://Dilim/Styles/Brands.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+    <StyleInclude Source="avares://Dilim/Styles/Soft.axaml" />
+    <StyleInclude Source="avares://Dilim/Styles/Controls.axaml" />
+    <StyleInclude Source="avares://Dilim/Styles/TagEditor.axaml" />
+    <StyleInclude Source="avares://Dilim/Styles/Dilim.axaml" />
+  </Application.Styles>
+</Application>

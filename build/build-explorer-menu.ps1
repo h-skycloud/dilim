@@ -1,14 +1,14 @@
 <#
 .SYNOPSIS
-  Builds the Windows 11 File Explorer menu extension: FileeExplorerMenu.dll + FileeExplorerMenu.msix.
+  Builds the Windows 11 File Explorer menu extension: DilimExplorerMenu.dll + DilimExplorerMenu.msix.
 
 .DESCRIPTION
-  The DLL (src/Filee.ExplorerMenu, plain C, no C runtime) is compiled with a pinned, portable Zig toolchain that is
+  The DLL (src/Dilim.ExplorerMenu, plain C, no C runtime) is compiled with a pinned, portable Zig toolchain that is
   downloaded into build/.cache (SHA-256 verified), so neither Visual C++ nor the Windows SDK is needed - locally or
   on GitHub's windows-latest runner. The unsigned sparse package is packed by build/tools/make-explorer-package.cs
   through the packaging API that ships with Windows.
 
-  Both files belong next to Filee.exe; the release workflow passes the publish folder as -Destination.
+  Both files belong next to Dilim.exe; the release workflow passes the publish folder as -Destination.
 
 .EXAMPLE
   pwsh build/build-explorer-menu.ps1
@@ -86,26 +86,26 @@ $major, $minor, $patch = [int]$parts[0], [int]$parts[1], [int]$parts[2]
 $zig = Get-Zig
 $env:ZIG_GLOBAL_CACHE_DIR = Join-Path $cache 'zig-cache'
 $env:ZIG_LOCAL_CACHE_DIR = Join-Path $cache 'zig-cache'
-$source = Join-Path $root 'src\Filee.ExplorerMenu'
+$source = Join-Path $root 'src\Dilim.ExplorerMenu'
 $obj = Join-Path $cache 'explorer-menu-obj'
 New-Item -ItemType Directory -Force -Path $obj, $Destination | Out-Null
 
 # The version resource gets the numbers through a generated header-like prefix (zig's resource compiler has no -D).
-$rc = Join-Path $obj 'FileeExplorerMenu.rc'
-$defines = "#define FILEE_VERSION_MAJOR $major`r`n#define FILEE_VERSION_MINOR $minor`r`n#define FILEE_VERSION_PATCH $patch`r`n#define FILEE_VERSION_TEXT `"$Version`"`r`n"
-Set-Content -Path $rc -Value ($defines + (Get-Content (Join-Path $source 'FileeExplorerMenu.rc') -Raw)) -Encoding utf8NoBOM -NoNewline
+$rc = Join-Path $obj 'DilimExplorerMenu.rc'
+$defines = "#define DILIM_VERSION_MAJOR $major`r`n#define DILIM_VERSION_MINOR $minor`r`n#define DILIM_VERSION_PATCH $patch`r`n#define DILIM_VERSION_TEXT `"$Version`"`r`n"
+Set-Content -Path $rc -Value ($defines + (Get-Content (Join-Path $source 'DilimExplorerMenu.rc') -Raw)) -Encoding utf8NoBOM -NoNewline
 
-Write-Host "build FileeExplorerMenu.dll $Version"
-$dll = Join-Path $obj 'FileeExplorerMenu.dll'
+Write-Host "build DilimExplorerMenu.dll $Version"
+$dll = Join-Path $obj 'DilimExplorerMenu.dll'
 # -nostdlib: no C runtime inside explorer.exe; the entry point is DllMain itself. -s strips symbols.
 & $zig cc -target x86_64-windows-gnu -shared -O2 -s -nostdlib -Wall -Wextra -Werror `
     -isystem (Join-Path (Split-Path $zig) 'lib\libc\include\any-windows-any') `
-    (Join-Path $source 'FileeExplorerMenu.c') (Join-Path $source 'FileeExplorerMenu.def') $rc `
+    (Join-Path $source 'DilimExplorerMenu.c') (Join-Path $source 'DilimExplorerMenu.def') $rc `
     -lkernel32 -luser32 -lole32 -lshell32 -lshlwapi '-Wl,--entry=DllMain' -o $dll
 if ($LASTEXITCODE -ne 0) { throw "zig cc failed with exit code $LASTEXITCODE" }
 Copy-Item $dll $Destination -Force
 
-Write-Host "pack FileeExplorerMenu.msix"
+Write-Host "pack DilimExplorerMenu.msix"
 $Destination = (Resolve-Path $Destination).Path
 Push-Location $root
 try {

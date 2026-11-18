@@ -1,6 +1,6 @@
 # Third-party notices
 
-Dilim by Dilim contributors is MIT-licensed and based on Filee by Myeonggu Kim (KnifeLemon) and contributors. The original MIT attribution is preserved in LICENSE. It uses the following third-party software; optional engines are downloaded separately in the default public package.
+Dilim is MIT-licensed; the copyright notice of the Filee code it originates from is kept in LICENSE. It uses the following third-party software; optional engines are downloaded separately in the default public package.
 Each component remains under its own license.
 
 ## Libraries (NuGet)
@@ -16,7 +16,7 @@ Each component remains under its own license.
 | PDFtoImage | MIT | https://github.com/sungaila/PDFtoImage |
 | PDFium (bblanchon.PDFium) | BSD-3-Clause / Apache-2.0 | https://pdfium.googlesource.com/pdfium |
 | SkiaSharp | MIT | https://github.com/mono/SkiaSharp |
-| Svg.Skia (incl. Svg, ShimSkiaSharp, ExCSS; text shaping in `Filee.Engines/Vector/OutlinedTextPlayback.cs` adapted from it) | MIT | https://github.com/wieslawsoltes/Svg.Skia |
+| Svg.Skia (incl. Svg, ShimSkiaSharp, ExCSS; text shaping in `Dilim.Engines/Vector/OutlinedTextPlayback.cs` adapted from it) | MIT | https://github.com/wieslawsoltes/Svg.Skia |
 | HarfBuzzSharp | MIT | https://github.com/mono/SkiaSharp |
 | SharpCompress (zstd decompression for engine downloads; RAR, 7z and TAR comics) | MIT | https://github.com/adamhathcock/sharpcompress |
 | Unhwp | MIT | https://github.com/iyulab/unhwp |
@@ -35,15 +35,15 @@ Each component remains under its own license.
 | ACadSharp (DWG/DXF reading and writing; includes CSMath and CSUtilities) | MIT, Copyright (c) Albert Domenech | https://github.com/DomCR/ACadSharp |
 | SharpGLTF.Core (glTF / GLB reading and writing) | MIT, Copyright (c) Vicente Penades | https://github.com/vpenades/SharpGLTF |
 | AngleSharp | MIT | https://github.com/AngleSharp/AngleSharp |
-| pypandoc-hwpx (Pandoc AST mapping and package layout in `Filee.Engines/Hwp/Hwpx`, incl. the `blank.hwpx` reference document) | MIT, Copyright (c) 2024 pypandoc-hwpx Contributors | https://github.com/msjang/pypandoc-hwpx |
+| pypandoc-hwpx (Pandoc AST mapping and package layout in `Dilim.Engines/Hwp/Hwpx`, incl. the `blank.hwpx` reference document) | MIT, Copyright (c) 2024 pypandoc-hwpx Contributors | https://github.com/msjang/pypandoc-hwpx |
 | Microsoft.Extensions.* | MIT | https://github.com/dotnet/runtime |
-| cu2qu (fontTools): the cubic-to-quadratic approach followed by `Filee.Engines/Fonts/Cff/CubicToQuadratic.cs` | Apache-2.0, Copyright 2016 Google Inc. | https://github.com/fonttools/fonttools |
+| cu2qu (fontTools): the cubic-to-quadratic approach followed by `Dilim.Engines/Fonts/Cff/CubicToQuadratic.cs` | Apache-2.0, Copyright 2016 Google Inc. | https://github.com/fonttools/fonttools |
 
 libuiohook (the native input hook inside SharpHook) is the fork https://github.com/TolikPylypchuk/libuiohook, licensed
-under the GNU LGPL-3.0 (`COPYING.LESSER.md` in its repository). Filee loads SharpHook's unmodified build of it
+under the GNU LGPL-3.0 (`COPYING.LESSER.md` in its repository). Dilim loads SharpHook's unmodified build of it
 dynamically; you may replace those libraries with your own build of libuiohook.
 
-Used by the tests only (not redistributed): DocumentFormat.OpenXml (Open XML SDK, MIT, https://github.com/dotnet/Open-XML-SDK) validates the DOCX files Filee writes.
+Used by the tests only (not redistributed): DocumentFormat.OpenXml (Open XML SDK, MIT, https://github.com/dotnet/Open-XML-SDK) validates the DOCX files Dilim writes.
 
 ## Engines
 
@@ -53,20 +53,20 @@ Bundled with the installer:
 |---|---|---|
 | rhwp | MIT | https://github.com/edwardkim/rhwp |
 | 7-Zip (console: `7z.exe`, `7z.dll`) | GNU LGPL-2.1-or-later; parts of `7z.dll`: LGPL with the unRAR license restriction, BSD-3-Clause, BSD-2-Clause | https://www.7-zip.org |
-| Microsoft Visual C++ Redistributable (Windows: next to `Filee.exe` and `rhwp.exe`, conda-forge `vc14_runtime`) | Microsoft Visual C++ Redistributable license | https://github.com/conda-forge/vc-feedstock |
+| Microsoft Visual C++ Redistributable (Windows: next to `Dilim.exe` and `rhwp.exe`, conda-forge `vc14_runtime`) | Microsoft Visual C++ Redistributable license | https://github.com/conda-forge/vc-feedstock |
 
-The Linux packages contain an rhwp built by Filee's CI from the unmodified source of the same release (tag `v0.8.7`,
+The Linux packages contain an rhwp built by Dilim's CI from the unmodified source of the same release (tag `v0.8.7`,
 commit `1a76570e833917d15817415a53c09ad61ab3203f`, `cargo build --release --locked --bin rhwp` on Ubuntu 22.04), so it
 runs on older Linux systems than rhwp's own Linux build. It is under the same MIT license; its `LICENSE` is next to it
 (`engines/rhwp`). Windows and macOS use rhwp's release builds.
 
 7-Zip is Copyright (C) 1999-2026 Igor Pavlov; its `License.txt` is installed next to it (`engines/7zip`). The RAR
 decompression code in `7z.dll` is under the unRAR license restriction: it may be used to unpack RAR archives, but not
-to develop a RAR (WinRAR) compatible archiver or to re-create the RAR compression algorithm. Filee only reads RAR
+to develop a RAR (WinRAR) compatible archiver or to re-create the RAR compression algorithm. Dilim only reads RAR
 files. Source code: https://github.com/ip7z/7zip.
 
 Downloaded from their official release pages when the user chooses to install them
-(pinned in `src/Filee.Engines/Infrastructure/engines.json`):
+(pinned in `src/Dilim.Engines/Infrastructure/engines.json`):
 
 | Component | License | Project |
 |---|---|---|
@@ -81,9 +81,9 @@ Downloaded from their official release pages when the user chooses to install th
 
 These programs run as separate processes. Their source code is available from the linked projects.
 
-## Windows 11 Explorer menu (FileeExplorerMenu.dll)
+## Windows 11 Explorer menu (DilimExplorerMenu.dll)
 
-The DLL is Filee's own C code, compiled with the Zig toolchain (a build tool, not shipped) against the mingw-w64
+The DLL is Dilim's own C code, compiled with the Zig toolchain (a build tool, not shipped) against the mingw-w64
 Windows headers, without a C runtime. Pieces of these projects that can end up in the binary:
 
 | Component | License | Project |
@@ -93,17 +93,17 @@ Windows headers, without a C runtime. Pieces of these projects that can end up i
 
 ## Installer
 
-`Filee-<version>-win-Setup.exe` is Filee's own installer (`src/Filee.Setup`, MIT like the app). It contains the
+`Dilim-<version>-win-Setup.exe` is Dilim's own installer (`src/Dilim.Setup`, MIT like the app). It contains the
 .NET runtime, Avalonia, SkiaSharp, HarfBuzzSharp, CommunityToolkit.Mvvm and SharpCompress (LZMA) listed in this file,
 the x86 branch filter of the LZMA SDK (public domain, Igor Pavlov, https://www.7-zip.org/sdk.html), and the published
-app as its payload. Filee 1.x's installer was built with Inno Setup, which is no longer used.
+app as its payload.
 
 ## Fonts and icons
 
 | Component | License | Project |
 |---|---|---|
 | Noto Sans, Noto Sans JP, Noto Sans KR, Noto Sans SC, Noto Sans Devanagari | SIL Open Font License 1.1 | https://github.com/notofonts |
-| Test fonts in `tests/Filee.Engines.Tests/Fonts` (subsets of Noto Sans and Noto Sans KR; not shipped) | SIL Open Font License 1.1 | see `OFL.txt` in that folder |
+| Test fonts in `tests/Dilim.Engines.Tests/Fonts` (subsets of Noto Sans and Noto Sans KR; not shipped) | SIL Open Font License 1.1 | see `OFL.txt` in that folder |
 | Material Design Icons (Pictogrammers) | Apache-2.0 | https://pictogrammers.com |
 | Simple Icons 16.35.0 (GitHub Sponsors, Patreon, Ko-fi and PayPal logos in the Sponsor window) | CC0-1.0 | https://simpleicons.org |
 

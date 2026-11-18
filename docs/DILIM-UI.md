@@ -1,7 +1,7 @@
-# Filee · Dilim Windows delivery
+# Dilim · Dilim Windows delivery
 
-The reference UI is implemented as a native Avalonia workspace on Filee's conversion foundation.
-Upstream base: `85f7e56156b373e889a725e7d245d8024b3d5f70`. Branch: `codex/filee-dilim-ui`.
+The reference UI is implemented as a native Avalonia workspace on Dilim's conversion foundation.
+Upstream base: `85f7e56156b373e889a725e7d245d8024b3d5f70`. Branch: `codex/dilim-dilim-ui`.
 
 ## Start
 
@@ -20,7 +20,7 @@ It requires .NET 10 and uses a separate development data folder.
 - Default Explorer shortcuts: Ctrl+Alt+Space / Ctrl+Alt+T / Ctrl+Alt+A.
 - Drag modifiers: Shift / Ctrl / Alt, respectively; Tab or wheel flips faces; Esc closes.
 - Gesture settings include the target pie mode. Existing customized gestures are preserved.
-- 26 tool entries use native image/PDF operations, Filee's job queue, or real FFmpeg operations.
+- 26 tool entries use native image/PDF operations, Dilim's job queue, or real FFmpeg operations.
 - Six file actions: Windows share sheet, floating file shelf, file clipboard, move, path clipboard and terminal.
 - Tools take explicit time/coordinate/page parameters and show progress, cancellation, output paths and open-folder.
 - Photo editing supports rotation, mirroring, resize, brightness, contrast and saturation. Crop uses the visual crop overlay.
