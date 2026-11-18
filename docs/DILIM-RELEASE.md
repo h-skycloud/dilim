@@ -31,8 +31,32 @@ dotnet test tests/Dilim.Engines.Tests --filter "FullyQualifiedName~FileConverter
 
 Full upstream engine validation has eight known OFD failures reproduced in the pristine base; do not claim it all passes. See DILIM-INITIAL-VALIDATION.md and DILIM-VALIDATION.md.
 
-## Publish
+## Publish — every new version
 
-Preserve the original MIT attribution and THIRD-PARTY-NOTICES.md. Commit reviewed source without personal settings, history, logs, caches or backups. The manual Release workflow builds a draft; review assets and checksums before publishing it. Application releases use `vVERSION` tags and `Dilim-VERSION-win-Setup.exe` naming for the updater.
+1. Raise `<Version>` in Directory.Build.props (e.g. 0.3.0 → 0.3.1).
+2. Add a `## 0.3.1` section at the top of CHANGELOG.md, starting with its `<!-- update -->` block:
+   `level:` (`required` / `recommended` / `optional`) and one-line summaries per language (`tr:`, `en:`, …). The
+   update card in installed copies shows exactly these lines; the release workflow refuses a version without them.
+3. Commit and push to `main`.
+4. GitHub → Actions → **Dilim release** → Run workflow. Tick **publish** to release at once, or leave it unticked
+   for a draft, check the assets and publish it by hand.
 
-Code signing is not configured; binaries are unsigned. Keep ProductIdentity.InstallId stable for future upgrades. Windows x64 is the validated target; inherited macOS/Linux implementations are not certified Dilim releases.
+Installed copies ask GitHub for `releases/latest` at start and every few hours. They see the new version only when
+the release is **published** (a draft or a pre-release is invisible to them), its tag is `vVERSION`, and it carries
+`Dilim-VERSION-win-Setup.exe` and `Dilim-VERSION-SHA256SUMS.txt`: "Update" downloads that Setup, checks it against
+the checksum file and runs it. Portable copies get a link to the release page instead.
+
+### Website download button
+
+Every release also carries version-less copies, so a website link never has to change:
+
+- Setup: `https://github.com/h-skycloud/dilim/releases/latest/download/Dilim-Setup.exe`
+- Portable: `https://github.com/h-skycloud/dilim/releases/latest/download/Dilim-Portable.zip`
+- Release page: `https://github.com/h-skycloud/dilim/releases/latest`
+
+### Notes
+
+Preserve the MIT copyright notice in LICENSE and THIRD-PARTY-NOTICES.md. Commit reviewed source without personal
+settings, history, logs, caches or backups. Code signing is not configured; binaries are unsigned (Windows
+SmartScreen warns on first download). Keep ProductIdentity.InstallId stable: it is how Setup finds the previous
+installation. Windows x64 is the validated target.

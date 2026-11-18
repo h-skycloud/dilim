@@ -61,7 +61,14 @@ try {
             if (Test-Path -LiteralPath $taskFull -PathType Leaf) { [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($taskArchive, $taskFull, $taskRelative.Replace('\','/'), [IO.Compression.CompressionLevel]::Optimal) | Out-Null }
         }
     } finally { $taskArchive.Dispose() }
-    $taskFiles = @($taskInstaller, $taskZip, $taskSourceZip)
+    # Version-less copies for links that must never change (the website's download button):
+    # https://github.com/<owner>/<repo>/releases/latest/download/Dilim-Setup.exe always serves the newest release.
+    # The in-app updater ignores them: it looks for "-win-Setup.exe".
+    $taskStableInstaller = Join-Path $taskOutput "$taskProduct-Setup.exe"
+    $taskStableZip = Join-Path $taskOutput "$taskProduct-Portable.zip"
+    Copy-Item -LiteralPath $taskInstaller -Destination $taskStableInstaller -Force
+    Copy-Item -LiteralPath $taskZip -Destination $taskStableZip -Force
+    $taskFiles = @($taskInstaller, $taskZip, $taskSourceZip, $taskStableInstaller, $taskStableZip)
     $taskSums = Join-Path $taskOutput "$taskProduct-$Version-SHA256SUMS.txt"
     $taskFiles | ForEach-Object { "$((Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($_))" } | Set-Content -LiteralPath $taskSums -Encoding ascii
     Get-Item -LiteralPath ($taskFiles + $taskSums) | Select-Object Name,Length

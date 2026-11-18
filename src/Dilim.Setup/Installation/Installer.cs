@@ -211,8 +211,8 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
     /// </summary>
     private void CloseDilim(string folder, bool force, bool velopack)
     {
-        var exe = Path.Combine(folder, SetupNames.AppExe);
-        if (File.Exists(exe))
+        // Dilim 0.2 is still Filee.exe: it understands --quit as well.
+        if (SetupNames.AppExeIn(folder) is { } exe)
         {
             var code = System.RunAndWait(exe, "--quit", QuitTimeout);
             Log.Info($"Dilim --quit: exit code {code}");

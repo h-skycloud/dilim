@@ -36,7 +36,7 @@ public sealed record PreviousInstall(
         if (string.IsNullOrWhiteSpace(folder))
             return null;
         folder = Path.TrimEndingDirectorySeparator(Environment.ExpandEnvironmentVariables(folder.Trim().Trim('"')));
-        if (!File.Exists(Path.Combine(folder, SetupNames.AppExe)))
+        if (SetupNames.AppExeIn(folder) is null)
             return null;
         var byInno = registry.Get(hive, key, SetupNames.InnoVersionValue) is not null
                      || File.Exists(Path.Combine(folder, SetupNames.InnoUninstallerFiles[0]));

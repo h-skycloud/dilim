@@ -152,6 +152,27 @@ public class PreviousInstallTests
         Assert.Null(PreviousInstall.Find(new MemoryRegistry(), InstallScope.Machine));
     }
 
+    /// <summary>Dilim 0.2 shipped its executable as Filee.exe: an update to 0.3 must still find that installation.</summary>
+    [Fact]
+    public void A_dilim_0_2_installation_with_filee_exe_is_found()
+    {
+        using var temp = new TempFolder();
+        var folder = temp.Sub("Dilim");
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "Filee.exe"), "0.2");
+        var registry = new MemoryRegistry();
+        registry.SetString(Hive.CurrentUser, SetupNames.UninstallKey, "InstallLocation", folder);
+        registry.SetString(Hive.CurrentUser, SetupNames.UninstallKey, "DisplayVersion", "0.2.0");
+        var previous = PreviousInstall.Find(registry, InstallScope.User);
+        Assert.NotNull(previous);
+        Assert.Equal("0.2.0", previous.Version);
+        Assert.Equal(Path.Combine(folder, "Filee.exe"), SetupNames.AppExeIn(folder));
+
+        // Once 0.3 is in place, its own name wins.
+        File.WriteAllText(Path.Combine(folder, "Dilim.exe"), "0.3");
+        Assert.Equal(Path.Combine(folder, "Dilim.exe"), SetupNames.AppExeIn(folder));
+    }
+
     [Fact]
     public void Inno_setups_app_path_is_enough_and_the_scope_is_kept_apart()
     {

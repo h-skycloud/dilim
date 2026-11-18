@@ -35,8 +35,7 @@ public sealed class Uninstaller(SetupContext context)
         var later = new List<string>();
         progress?.Report(new SetupProgress(SetupStep.Closing, 0));
 
-        var exe = Path.Combine(folder, SetupNames.AppExe);
-        if (File.Exists(exe))
+        if (SetupNames.AppExeIn(folder) is { } exe)
             Log.Info($"Dilim --uninstall-cleanup: exit code {System.RunAndWait(exe, "--uninstall-cleanup", CleanupTimeout)}");
         foreach (var program in System.ProgramsIn(folder).Where(p => p.Id != Environment.ProcessId))
         {

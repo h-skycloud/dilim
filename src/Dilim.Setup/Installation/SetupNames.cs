@@ -22,6 +22,16 @@ public static class SetupNames
     public const string Publisher = Core.ProductIdentity.Publisher;
     public const string AppExe = "Dilim.exe";
 
+    /// <summary>
+    /// What the app's executable was called before 0.3.0 (Dilim 0.2 still shipped it as Filee.exe). An update finds an
+    /// installation by either name, and asks either one to quit.
+    /// </summary>
+    public static readonly IReadOnlyList<string> LegacyAppExes = ["Filee.exe"];
+
+    /// <summary>The app's executable in <paramref name="folder"/>: this version's name first, then older ones; null when none.</summary>
+    public static string? AppExeIn(string folder) =>
+        new[] { AppExe }.Concat(LegacyAppExes).Select(name => Path.Combine(folder, name)).FirstOrDefault(File.Exists);
+
     /// <summary>The uninstaller next to Dilim.exe (UpdateService.IsInstalled looks for it).</summary>
     public const string UninstallerExe = "uninstall.exe";
 

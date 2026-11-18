@@ -1,6 +1,11 @@
-name: Draft Dilim release
+name: Dilim release
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish right away (installed copies see the update only once it is published, not as a draft)'
+        type: boolean
+        default: false
 permissions:
   contents: write
 jobs:
@@ -17,12 +22,24 @@ jobs:
           ./build/fetch-fonts.ps1
           ./build/build-dilim-release.ps1 -RepositoryUrl "https://github.com/${{ github.repository }}"
           ./build/check-dilim-installer.ps1
-      - name: Create draft release
+      - name: Release notes from CHANGELOG.md
+        shell: pwsh
+        run: |
+          $releaseVersion = [string]([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version
+          $lines = Get-Content CHANGELOG.md -Encoding utf8
+          $start = [Array]::IndexOf($lines, "## $releaseVersion")
+          if ($start -lt 0) { throw "CHANGELOG.md has no '## $releaseVersion' section. The update card reads its <!-- update --> block." }
+          $end = $start + 1
+          while ($end -lt $lines.Count -and -not $lines[$end].StartsWith('## ')) { $end++ }
+          $notes = $lines[($start + 1)..($end - 1)] -join "`n"
+          if ($notes -notmatch '<!-- update') { throw "The $releaseVersion section has no <!-- update --> block (level and one-line summaries)." }
+          Set-Content -LiteralPath release-notes.md -Value $notes.Trim() -Encoding utf8
+          "RELEASE_VERSION=$releaseVersion" >> $env:GITHUB_ENV
+      - name: Create release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $releaseProps = [xml](Get-Content Directory.Build.props)
-          $releaseVersion = [string]$releaseProps.Project.PropertyGroup.Version
-          gh release create "v$releaseVersion" ./Releases/* --draft --title "Dilim $releaseVersion" --notes "Dilim contributors · https://github.com/h-skycloud/dilim · See README and included notices."
-          if ($LASTEXITCODE -ne 0) { throw 'Draft release failed.' }
+          $draft = @(if ('${{ inputs.publish }}' -eq 'true') { '--latest' } else { '--draft' })
+          gh release create "v$env:RELEASE_VERSION" ./Releases/* @draft --title "Dilim $env:RELEASE_VERSION" --notes-file release-notes.md
+          if ($LASTEXITCODE -ne 0) { throw 'Release failed.' }
