@@ -1,0 +1,19 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Dilim.Setup.App"
+             Name="Dilim Setup"
+             RequestedThemeVariant="Default">
+  <!-- Light or dark follows Windows (RequestedThemeVariant="Default"), like Dilim's "System" theme. -->
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://Dilim.Setup/Views/StateViews.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+  <Application.Styles>
+    <FluentTheme />
+    <StyleInclude Source="avares://Dilim.Setup/Styles/Soft.axaml" />
+    <StyleInclude Source="avares://Dilim.Setup/Styles/Setup.axaml" />
+  </Application.Styles>
+</Application>

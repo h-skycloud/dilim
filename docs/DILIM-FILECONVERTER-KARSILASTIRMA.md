@@ -29,4 +29,4 @@ Fotoğraf/PDF/video kullanımı için teknik geçiş kontrolleri tamamlandı. Ay
 - [Ayar denetimleri](https://github.com/Tichau/FileConverter/blob/5dce6c0980635e3a6ae8d8acff235bcc9b1441a4/Application/FileConverter/Views/Resources/ConversionPresetTemplates.xaml)
 - [Video/ses davranışı](https://github.com/Tichau/FileConverter/blob/5dce6c0980635e3a6ae8d8acff235bcc9b1441a4/Application/FileConverter/ConversionJobs/ConversionJob_FFMPEG.Converters.cs)
 
-Dilim Dilim contributors tarafından Filee'nin MIT temeli üzerinde geliştirildi. FileConverter kaynak kodu kopyalanmadı; uyumluluk davranışı bağımsız uygulandı. Özgün Filee ve bağımlılıkların lisans/atıfları korunur. [Dilim contributors](https://github.com/h-skycloud/dilim).
+Dilim Dilim contributors tarafından Dilim'in MIT temeli üzerinde geliştirildi. FileConverter kaynak kodu kopyalanmadı; uyumluluk davranışı bağımsız uygulandı. Özgün Dilim ve bağımlılıkların lisans/atıfları korunur. [Dilim contributors](https://github.com/h-skycloud/dilim).

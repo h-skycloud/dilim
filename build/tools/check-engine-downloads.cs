@@ -1,6 +1,6 @@
-#:project ../../src/Filee.Engines/Filee.Engines.csproj
+#:project ../../src/Dilim.Engines/Dilim.Engines.csproj
 using System.Net;
-using Filee.Engines.Infrastructure;
+using Dilim.Engines.Infrastructure;
 
 // Exercise production engine installation using the exact checksum-pinned archives already fetched by the build.
 var root = Path.GetFullPath(args.Length > 0 ? args[0] : "artifacts/engine-install-check");

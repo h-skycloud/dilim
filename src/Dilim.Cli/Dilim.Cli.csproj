@@ -1,0 +1,27 @@
+<!--
+  Dilim.Cli: the "dilim" command line. Converts files and watches folders without the tray app, with the same
+  engines, presets and settings. Published next to Dilim.exe as dilim-cli.exe (one runtime for both); the installer
+  puts a "dilim" shim on PATH (cli\dilim.cmd).
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>dilim-cli</AssemblyName>
+    <RootNamespace>Dilim.Cli</RootNamespace>
+    <ApplicationIcon>..\Dilim.App\Assets\Icons\dilim.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dilim.Core\Dilim.Core.csproj" />
+    <ProjectReference Include="..\Dilim.Engines\Dilim.Engines.csproj" />
+  </ItemGroup>
+
+  <!-- Error messages and built-in preset names, in English (the app's translation file). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\Dilim.App\Assets\i18n\en.json" LogicalName="Dilim.Cli.en.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dilim.Cli.Tests" />
+  </ItemGroup>
+</Project>

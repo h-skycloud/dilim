@@ -1,11 +1,11 @@
 # Custom themes
 
-Filee's own colours can be replaced with a `theme.json` file in the folder that holds `settings.json`:
+Dilim's own colours can be replaced with a `theme.json` file in the folder that holds `settings.json`:
 
-- Windows: `%APPDATA%\Filee\theme.json`
-- Linux: `~/.config/Filee/theme.json`
-- macOS: `~/Library/Application Support/Filee/theme.json`
-- With `FILEE_DATA_DIR` set: `theme.json` in that folder
+- Windows: `%APPDATA%\Dilim\theme.json`
+- Linux: `~/.config/Dilim/theme.json`
+- macOS: `~/Library/Application Support/Dilim/theme.json`
+- With `DILIM_DATA_DIR` set: `theme.json` in that folder
 
 ```jsonc
 {
@@ -26,11 +26,11 @@ Filee's own colours can be replaced with a `theme.json` file in the folder that 
 }
 ```
 
-- `dark` and `light` are both optional, and so is every colour in them. Anything left out keeps Filee's colour.
+- `dark` and `light` are both optional, and so is every colour in them. Anything left out keeps Dilim's colour.
 - Colours are `#RRGGBB` or `#AARRGGBB`. Unknown names and other values are ignored and written to the log, and so is
   a file with no usable colour (for example `"Dark"` with a capital D) or one over 64 KB.
 - The accent colour, corner radius and light/dark choice stay in **Settings > Theme**.
-- Filee reads the file when it starts and whenever a setting is saved. Restart Filee, or change any setting, after
+- Dilim reads the file when it starts and whenever a setting is saved. Restart Dilim, or change any setting, after
   editing it. Deleting the file brings the built-in colours back.
 
 Keep `text` and `textSecondary` readable on `page`, `surface` and `surfaceAlt`: they are drawn on all three.

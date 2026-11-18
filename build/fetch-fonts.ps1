@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Downloads the Noto Sans fonts (SIL Open Font License 1.1) used by the Filee UI.
+  Downloads the Noto Sans fonts (SIL Open Font License 1.1) used by the Dilim UI.
 
 .DESCRIPTION
   Fonts are not committed to git (≈36 MB). Run this once after cloning, and CI runs it before publishing.
@@ -14,7 +14,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Destination = (Join-Path $PSScriptRoot '..\src\Filee.App\Assets\Fonts')
+    [string]$Destination = (Join-Path $PSScriptRoot '..\src\Dilim.App\Assets\Fonts')
 )
 
 $ErrorActionPreference = 'Stop'

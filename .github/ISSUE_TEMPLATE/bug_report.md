@@ -19,4 +19,4 @@ labels: bug
 - Windows version:
 - Engines page status (screenshot helps):
 
-**Log** – `%APPDATA%\Dilim\logs\filee-<date>.log` (last lines)
+**Log** – `%APPDATA%\Dilim\logs\dilim-<date>.log` (last lines)

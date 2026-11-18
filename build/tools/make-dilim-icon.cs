@@ -1,5 +1,5 @@
 // Code-native four-slice Dilim mark, redrawn from the owner's reference.
-#:project ../../src/Filee.Engines/Filee.Engines.csproj
+#:project ../../src/Dilim.Engines/Dilim.Engines.csproj
 using ImageMagick;
 using System.Text;
 
@@ -14,10 +14,10 @@ const string mark = """
 </g>
 </svg>
 """;
-var output = Path.Combine("src", "Filee.App", "Assets", "Icons");
+var output = Path.Combine("src", "Dilim.App", "Assets", "Icons");
 File.WriteAllText(Path.Combine(output, "dilim.svg"), mark);
 using var image = new MagickImage(Encoding.UTF8.GetBytes(mark), new MagickReadSettings { BackgroundColor = MagickColors.Transparent, Format = MagickFormat.Svg });
-image.Write(Path.Combine(output, "filee.png"), MagickFormat.Png);
+image.Write(Path.Combine(output, "dilim.png"), MagickFormat.Png);
 image.Settings.SetDefine(MagickFormat.Icon, "auto-resize", "256,64,48,32,24,16");
-image.Write(Path.Combine(output, "filee.ico"), MagickFormat.Icon);
+image.Write(Path.Combine(output, "dilim.ico"), MagickFormat.Icon);
 Console.WriteLine("Dilim icon rendered.");

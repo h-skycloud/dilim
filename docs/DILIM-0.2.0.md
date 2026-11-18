@@ -2,7 +2,7 @@
 
 The maintainer selected **Dilim** as the final product name. The new monochrome four-slice mark was independently redrawn as SVG from the maintainer's supplied reference and rendered into PNG/Windows ICO assets. The main header contains only Dilim. Personal website navigation and studio branding were removed from compiled application resources.
 
-Product, settings/cache paths, IPC, startup/context-menu identity, shortcut, package scripts, documentation and update/issue links use Dilim. Repository: https://github.com/h-skycloud/dilim. Upstream Filee namespace/assembly identifiers remain implementation details; original MIT attribution is preserved.
+Product, settings/cache paths, IPC, startup/context-menu identity, shortcut, package scripts, documentation and update/issue links use Dilim. Repository: https://github.com/h-skycloud/dilim. Internal namespace/assembly identifiers were still inherited at this version (renamed to `Dilim.*` in 0.3.0); original MIT attribution is preserved.
 
 Validation on Windows x64:
 
@@ -10,7 +10,7 @@ Validation on Windows x64:
 - App: 128 passed, including 54 page renders across supported languages, localization, preset editing/library execution, shortcuts and update behavior.
 - Setup: 126 passed.
 - Selected conversion/tools/engine-installer/runtime scope: 95 passed.
-- Actual Setup payload sandbox: install, update and uninstall passed; settings, foreign files and a separate upstream installation survived.
+- Actual Setup payload sandbox: install, update and uninstall passed; settings, foreign files and a separate Filee installation survived.
 - Windows calculated the modern extension family as `Dilim.ExplorerMenu_8z99cddef50t0`.
 - Turkish catalogue render was visually inspected: Dilim title/icon, no studio subtitle or personal-website button.
 - Clean per-user installation exposed MSI error 1619 when opening an engine archive directly from the application cache. Verified MSI packages are now staged in the Windows temporary directory before administrative extraction. The production installer subsequently installed and ran both 7-Zip and FFmpeg from the normal LocalAppData engine root; all 37 installer/runtime tests passed again.

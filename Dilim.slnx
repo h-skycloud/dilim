@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Dilim.Core/Dilim.Core.csproj" />
+    <Project Path="src/Dilim.Engines/Dilim.Engines.csproj" />
+    <Project Path="src/Dilim.Platform.Windows/Dilim.Platform.Windows.csproj" />
+    <Project Path="src/Dilim.Platform.Linux/Dilim.Platform.Linux.csproj" />
+    <Project Path="src/Dilim.Platform.MacOS/Dilim.Platform.MacOS.csproj" />
+    <Project Path="src/Dilim.App/Dilim.App.csproj" />
+    <Project Path="src/Dilim.Cli/Dilim.Cli.csproj" />
+    <Project Path="src/Dilim.Setup/Dilim.Setup.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Dilim.Core.Tests/Dilim.Core.Tests.csproj" />
+    <Project Path="tests/Dilim.Engines.Tests/Dilim.Engines.Tests.csproj" />
+    <Project Path="tests/Dilim.App.Tests/Dilim.App.Tests.csproj" />
+    <Project Path="tests/Dilim.Cli.Tests/Dilim.Cli.Tests.csproj" />
+    <Project Path="tests/Dilim.Platform.Tests/Dilim.Platform.Tests.csproj" />
+    <Project Path="tests/Dilim.Setup.Tests/Dilim.Setup.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path=".editorconfig" />
+  </Folder>
+</Solution>

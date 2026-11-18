@@ -15,10 +15,10 @@ jobs:
         run: |
           ./build/fetch-fonts.ps1
           ./build/fetch-engines.ps1 -Only ffmpeg,7zip
-      - run: dotnet test tests/Filee.Core.Tests --logger trx
-      - run: dotnet test tests/Filee.Setup.Tests --logger trx
-      - run: dotnet test tests/Filee.App.Tests --filter "FullyQualifiedName~CatalogTests|FullyQualifiedName~ConversionSettingsTests|FullyQualifiedName~LocalizationTests|FullyQualifiedName~SingleInstanceTests|FullyQualifiedName~UpdateServiceTests|FullyQualifiedName~DilimPieTests|FullyQualifiedName~EnginesPageTests|FullyQualifiedName~EngineUpdateTests" --logger trx
-      - run: dotnet test tests/Filee.Engines.Tests --filter "FullyQualifiedName~FileConverterParityTests|FullyQualifiedName~VideoTuningTests|FullyQualifiedName~PdfCompressionTests|FullyQualifiedName~DilimToolTests|FullyQualifiedName~EngineInstallerTests|FullyQualifiedName~PortableEngineTests|FullyQualifiedName~AppLocalRuntimeTests" --logger trx
+      - run: dotnet test tests/Dilim.Core.Tests --logger trx
+      - run: dotnet test tests/Dilim.Setup.Tests --logger trx
+      - run: dotnet test tests/Dilim.App.Tests --filter "FullyQualifiedName~CatalogTests|FullyQualifiedName~ConversionSettingsTests|FullyQualifiedName~LocalizationTests|FullyQualifiedName~SingleInstanceTests|FullyQualifiedName~UpdateServiceTests|FullyQualifiedName~DilimPieTests|FullyQualifiedName~EnginesPageTests|FullyQualifiedName~EngineUpdateTests" --logger trx
+      - run: dotnet test tests/Dilim.Engines.Tests --filter "FullyQualifiedName~FileConverterParityTests|FullyQualifiedName~VideoTuningTests|FullyQualifiedName~PdfCompressionTests|FullyQualifiedName~DilimToolTests|FullyQualifiedName~EngineInstallerTests|FullyQualifiedName~PortableEngineTests|FullyQualifiedName~AppLocalRuntimeTests" --logger trx
       - name: Test reports
         if: always()
         uses: actions/upload-artifact@v7

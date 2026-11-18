@@ -1,0 +1,5 @@
+; Exports of the Explorer context-menu COM server (see DilimExplorerMenu.c).
+LIBRARY DilimExplorerMenu
+EXPORTS
+    DllGetClassObject PRIVATE
+    DllCanUnloadNow PRIVATE

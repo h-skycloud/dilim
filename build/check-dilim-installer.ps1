@@ -21,7 +21,7 @@ function Invoke-DilimSetup([string]$Program, [string[]]$Extra) {
     if ($taskProcess.ExitCode -ne 0) { throw "Setup failed: $($taskProcess.ExitCode). Logs: $taskSandbox" }
 }
 Invoke-DilimSetup $Installer @('/TASKS=contextmenu,cli,desktopicon')
-foreach ($taskFile in @('Filee.exe','uninstall.exe','uninstall.json','cli/dilim.cmd','ENGINE-VERSIONS.json','LICENSE','KULLANIM-REHBERI.html')) {
+foreach ($taskFile in @('Dilim.exe','uninstall.exe','uninstall.json','cli/dilim.cmd','ENGINE-VERSIONS.json','LICENSE','KULLANIM-REHBERI.html')) {
     if (-not (Test-Path -LiteralPath (Join-Path $taskApp $taskFile))) { throw "Missing installed file: $taskFile" }
 }
 $taskRegistry = Get-Content -LiteralPath (Join-Path $taskSandbox 'registry.json') -Raw
@@ -30,7 +30,7 @@ Set-Content -LiteralPath (Join-Path $taskApp 'foreign.txt') -Value 'not owned by
 Invoke-DilimSetup $Installer @()
 if (-not (Test-Path -LiteralPath (Join-Path $taskApp 'foreign.txt'))) { throw 'Update removed a foreign file.' }
 Invoke-DilimSetup (Join-Path $taskApp 'uninstall.exe') @('/UNINSTALL','/FIRSTPHASE=0')
-if (Test-Path -LiteralPath (Join-Path $taskApp 'Filee.exe')) { throw 'Uninstall left the application executable.' }
+if (Test-Path -LiteralPath (Join-Path $taskApp 'Dilim.exe')) { throw 'Uninstall left the application executable.' }
 foreach ($taskKept in @((Join-Path $taskApp 'foreign.txt'),(Join-Path $taskData 'keep.txt'),(Join-Path $taskUpstream 'Filee.exe'))) {
     if (-not (Test-Path -LiteralPath $taskKept)) { throw "Uninstall removed an unrelated/preserved file: $taskKept" }
 }

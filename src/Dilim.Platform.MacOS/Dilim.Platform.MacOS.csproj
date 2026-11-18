@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Dilim.Platform.MacOS</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Dilim.Core\Dilim.Core.csproj" />
+    <InternalsVisibleTo Include="Dilim.Platform.Tests" />
+  </ItemGroup>
+</Project>

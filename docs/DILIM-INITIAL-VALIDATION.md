@@ -6,8 +6,8 @@ Base: `85f7e56156b373e889a725e7d245d8024b3d5f70`, Windows x64, .NET SDK 10.0.302
 
 ## Final-source checks
 
-- Application build: passed (`dotnet build src/Filee.App --no-restore`).
-- Formatting: passed (`dotnet format Filee.slnx --verify-no-changes --no-restore`).
+- Application build: passed (`dotnet build src/Dilim.App --no-restore`).
+- Formatting: passed (`dotnet format Dilim.slnx --verify-no-changes --no-restore`).
 - Whitespace: passed (`git diff --check`).
 - Final focused tests: **33 passed, 0 failed, 0 skipped**. These run from a separate output
   directory (`--artifacts-path artifacts/ui-validation`) so the full-suite runner can finish
@@ -23,7 +23,7 @@ Base: `85f7e56156b373e889a725e7d245d8024b3d5f70`, Windows x64, .NET SDK 10.0.302
 Focused command:
 
 ```powershell
-dotnet test tests/Filee.App.Tests --artifacts-path artifacts/ui-validation `
+dotnet test tests/Dilim.App.Tests --artifacts-path artifacts/ui-validation `
   --filter 'FullyQualifiedName~CatalogTests|FullyQualifiedName~LocalizationTests|FullyQualifiedName~LocalizationResourceTests|FullyQualifiedName~Custom_theme_colours_replace_the_built_in_ones_and_go_away_with_the_file'
 ```
 
@@ -68,7 +68,7 @@ The actual development executable was opened using `build/run-dilim.ps1`:
 5. Output format/dimensions were independently checked: WEBP, 640 × 420.
 
 The app remains open with its isolated development profile. Windows startup/Explorer
-registrations are not changed (`FILEE_DATA_DIR` isolation, also confirmed in its startup log).
+registrations are not changed (`DILIM_DATA_DIR` isolation, also confirmed in its startup log).
 
 Proof image: `artifacts/dilim-ui-windows.jpg`.
-Headless final screenshots: `artifacts/ui-validation/bin/Filee.App.Tests/debug/screenshots`.
+Headless final screenshots: `artifacts/ui-validation/bin/Dilim.App.Tests/debug/screenshots`.

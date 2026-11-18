@@ -1,8 +1,6 @@
 # Open source and attribution
 
-Dilim is an open-source distribution developed from [Filee](https://github.com/KnifeLemon/Filee), by Myeonggu Kim (KnifeLemon) and contributors. The original MIT copyright and license are preserved in LICENSE. Dilim contributions are also MIT-licensed. Internal `Filee.*` project and assembly names remain as technical identifiers.
-
-The product website is https://github.com/h-skycloud/dilim. The public name is Dilim; the repository is h-skycloud/dilim. No download, popularity or signing claims refer to the upstream product.
+Dilim is an independent, MIT-licensed file converter: its own name, mark, installer, data folders, project and assembly names (`Dilim.*`), and its own release channel at https://github.com/h-skycloud/dilim. Parts of its code base originate from Filee by Myeonggu Kim (KnifeLemon) and contributors, also MIT-licensed; as that license requires, their copyright notice is kept in LICENSE. Dilim is not affiliated with or endorsed by the Filee project, and no download, popularity or signing claims refer to it.
 
 FileConverter's behavior and the user's XML settings are used as compatibility references. Its GPL source code has not been copied into the application. Tests use independently authored fixtures.
 
