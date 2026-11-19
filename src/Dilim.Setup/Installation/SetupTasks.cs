@@ -20,8 +20,8 @@ public sealed record SetupTasks(bool ContextMenu, bool ModernMenu, bool Startup,
     /// <summary>Every task, parents before their children.</summary>
     public static readonly IReadOnlyList<string> Names = [ContextMenuName, ModernMenuName, StartupName, CliName, DesktopIconName];
 
-    /// <summary>What a fresh install ticks: everything but the desktop shortcut.</summary>
-    public static SetupTasks Defaults { get; } = new(true, false, false, false, false);
+    /// <summary>What a fresh install ticks: the Explorer menu and starting with Windows (the shortcuts need Dilim running).</summary>
+    public static SetupTasks Defaults { get; } = new(true, false, true, false, false);
 
     /// <summary>
     /// /TASKS (only the listed tasks) and /MERGETASKS (changes to the defaults), as Inno Setup reads them:

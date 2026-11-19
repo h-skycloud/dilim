@@ -117,16 +117,23 @@ public sealed class AppSettings
     /// <summary><c>"auto"</c>, <c>"en"</c>, <c>"ko"</c> or <c>"zh-CN"</c>.</summary>
     public string Language { get; set; } = "auto";
 
-    public bool StartWithSystem { get; set; }
+    /// <summary>
+    /// Start in the tray when the user signs in. On by default: the shortcuts and the drag gesture only work while
+    /// Dilim runs.
+    /// </summary>
+    public bool StartWithSystem { get; set; } = true;
 
     /// <summary>Show the Explorer "Convert with Dilim" context menu entry.</summary>
     public bool ContextMenuEnabled { get; set; } = true;
 
     public bool CheckForUpdates { get; set; } = true;
 
-    /// <summary>What closing the main window does. A value from a newer Dilim reads as <see cref="CloseAction.Ask"/>.</summary>
+    /// <summary>
+    /// What closing the main window does: by default Dilim keeps running in the tray, so its shortcuts keep working.
+    /// A value from a newer Dilim reads as <see cref="CloseAction.Ask"/>.
+    /// </summary>
     [JsonConverter(typeof(LenientEnumJsonConverter<CloseAction>))]
-    public CloseAction CloseAction { get; set; } = CloseAction.Ask;
+    public CloseAction CloseAction { get; set; } = CloseAction.Tray;
 
     /// <summary>Record finished conversions in the history (home page). Off: nothing new is recorded.</summary>
     public bool KeepHistory { get; set; } = true;
@@ -175,6 +182,12 @@ public sealed class AppSettings
     public List<TriggerGesture> Triggers { get; set; } = TriggerGesture.Defaults();
 
     public bool DilimGesturesInitialized { get; set; }
+
+    /// <summary>
+    /// Settings from Dilim 0.2 had "start with Windows" off and "ask on close" by default; 0.3.1 moves them once to the
+    /// new defaults (start in the tray, keep running in the tray). Choices made since are kept.
+    /// </summary>
+    public bool BackgroundDefaultsApplied { get; set; }
 
     /// <summary>Process names (without .exe) in which gestures never trigger.</summary>
     public List<string> ExcludedProcesses { get; set; } = [];

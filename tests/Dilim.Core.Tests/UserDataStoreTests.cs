@@ -1153,7 +1153,8 @@ public class UserDataStoreTests
         using var dir = new TempDir();
         var store = new UserDataStore(dir.Path);
         store.Load();
-        Assert.Equal(CloseAction.Ask, store.Settings.CloseAction);
+        Assert.Equal(CloseAction.Tray, store.Settings.CloseAction);
+        Assert.True(store.Settings.StartWithSystem);
         store.Settings.CloseAction = CloseAction.Quit;
         store.SaveSettings();
 

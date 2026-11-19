@@ -10,27 +10,42 @@ one-line summaries in the user's language (a line per change; a language without
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 0.3.1
+
+<!-- update
+level: recommended
+tr: Dilim Windows açılırken tepside başlar; kısayollar her an hazırdır
+tr: Pencereyi kapatınca Dilim tepside çalışmaya devam eder (Genel ayarlarından değiştirilebilir)
+tr: Tema sayfasındaki önizleme sadeleşti: örnek kontroller vurgu rengini gösterir, ayarlar anında kaydedilir
+en: Dilim starts in the tray when Windows starts, so its shortcuts are always ready
+en: Closing the window keeps Dilim running in the tray (change it under General)
+en: The Theme preview is clearer: sample controls show the accent, settings save as you change them
+-->
+
+- **Ready in the background:** Dilim starts in the tray when you sign in to Windows and keeps running there when its
+  window is closed, so the pie shortcuts and the drag gesture always work. Both can be changed under General; Setup
+  ticks "Start with Windows" by default.
+- **Theme preview:** the sample button, switch and progress bar under the pie show the accent colour and can no longer
+  be mistaken for settings. Theme changes are saved as you make them.
+
 ## 0.3.0
 
 <!-- update
 level: recommended
-tr: Raf yeniden yapıldı: dosya bırak, birden fazlasını başka uygulamaya sürükle, yeniden başlatınca hatırlar
-tr: Raf tepsi menüsünden de açılır; klasörde göster, yolu kopyala ve pie menüsüne gönder eklendi
-tr: Dilim artık tamamen kendi adıyla: proje, dosya ve kurulum adları Dilim oldu
-en: The shelf was rebuilt: drop files on it, drag several out to any app, and it remembers them after a restart
-en: Open the shelf from the tray; show in folder, copy path and send to the pie were added
-en: Dilim now stands on its own: project, file and installer names are Dilim
+tr: Raf: dosyaları rafa bırak, bir ya da birkaçını istediğin uygulamaya sürükle; raf yeniden başlatınca da hatırlar
+tr: Raf tepsi menüsünden açılır; klasörde göster, yolu kopyala ve dönüştürmeye gönder
+tr: Yeni kurulum ekranı ve "Yenilikler" slaytları
+en: The shelf: drop files on it and drag one or several into any app; it remembers them after a restart
+en: Open the shelf from the tray; show in folder, copy path and send to conversion
+en: A new setup window and "What's new" slides
 -->
 
-- **Shelf (Raf):** rows can now really be dragged out (one or a selection) into Explorer, mail, chat or any app. Files
-  and folders can be dropped on the shelf or picked with +. Ctrl/Shift multi-select, Delete, Ctrl+A, Ctrl+C (paths),
-  Enter (open), Alt+↑/↓ (reorder), right-click menu (open, show in folder, copy path, convert, remove). References are
-  kept in `shelf.txt` next to the settings; a file moved away by a drag leaves the shelf. Tray menu → Shelf.
-- **Independent identity:** every project, namespace, assembly, executable (`Dilim.exe`, `dilim-cli`), environment
-  variable (`DILIM_DATA_DIR`), installer payload and package identifier is Dilim's own. Engines installed by 0.2 are
-  still recognised and not downloaded again.
-- Filee's sponsor/supporter screens, its 2.0 "What's new" slides, its logo and website links were removed. The setup
-  window draws Dilim's four-slice mark; the "What's new" slides of 0.3.0 show Dilim.
+- **Shelf (Raf):** drag one file or a selection out into Explorer, mail, chat or any app. Drop files and folders on
+  the shelf or pick them with +. Ctrl/Shift multi-select, Delete, Ctrl+A, Ctrl+C (paths), Enter (open), Alt+↑/↓
+  (reorder), right-click menu (open, show in folder, copy path, convert, remove). The shelf keeps references only and
+  remembers them after a restart. Tray menu → Shelf.
+- **Setup and slides:** the setup window draws Dilim's four-slice mark; "What's new" shows the shelf, the pie, the
+  catalogue, themes and languages.
 
 ## 0.2.0
 

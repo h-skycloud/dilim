@@ -65,6 +65,7 @@ public partial class App : Application
         if (Program.PreloadedStore is null)
             store.Load();
         DilimService.EnsureGestures(store);
+        DilimService.EnsureBackgroundDefaults(store);
 
         var loc = AppHost.Get<LocalizationService>();
         loc.Attach(this);

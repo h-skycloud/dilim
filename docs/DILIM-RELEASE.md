@@ -1,6 +1,6 @@
 # Dilim release guide
 
-Repository: https://github.com/h-skycloud/dilim . Current version: 0.3.0.
+Repository: https://github.com/h-skycloud/dilim . Current version: 0.3.1.
 
 ## Build
 
