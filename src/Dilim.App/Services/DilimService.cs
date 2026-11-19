@@ -48,6 +48,19 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
         store.SaveSettings();
     }
 
+    /// <summary>
+    /// Once: settings that still have 0.2's defaults (no start with Windows, ask on close) get the new ones, so the
+    /// shortcuts work after a restart. A fresh install's Setup choice is applied after this and still wins.
+    /// </summary>
+    public static void EnsureBackgroundDefaults(UserDataStore store)
+    {
+        if (store.Settings.BackgroundDefaultsApplied) return;
+        if (!store.Settings.StartWithSystem) store.Settings.StartWithSystem = true;
+        if (store.Settings.CloseAction == CloseAction.Ask) store.Settings.CloseAction = CloseAction.Tray;
+        store.Settings.BackgroundDefaultsApplied = true;
+        store.SaveSettings();
+    }
+
     public static List<TriggerGesture> CreateGestures()
     {
         var result = new List<TriggerGesture>();

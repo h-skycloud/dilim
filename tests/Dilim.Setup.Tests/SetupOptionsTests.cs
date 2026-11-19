@@ -174,11 +174,11 @@ public class SetupOptionsTests
 public class SetupTasksTests
 {
     [Fact]
-    public void A_fresh_install_ticks_everything_but_the_desktop_icon()
+    public void A_fresh_install_ticks_the_explorer_menu_and_starting_with_windows()
     {
         var tasks = SetupTasks.FromCommandLine(null, null);
         Assert.Equal(SetupTasks.Defaults, tasks);
-        Assert.Equal("contextmenu", tasks.ToInnoString());
+        Assert.Equal("contextmenu,startup", tasks.ToInnoString());
     }
 
     [Fact]
@@ -198,8 +198,8 @@ public class SetupTasksTests
     {
         Assert.Equal(new SetupTasks(true, false, false, false, true), SetupTasks.FromCommandLine(null, "desktopicon,!startup"));
         // Unticking a parent unticks its children.
-        Assert.Equal(new SetupTasks(false, false, false, false, false), SetupTasks.FromCommandLine(null, "!contextmenu"));
-        Assert.Equal(new SetupTasks(true, false, false, false, false), SetupTasks.FromCommandLine(null, @"!contextmenu\top"));
+        Assert.Equal(new SetupTasks(false, false, true, false, false), SetupTasks.FromCommandLine(null, "!contextmenu"));
+        Assert.Equal(new SetupTasks(true, false, true, false, false), SetupTasks.FromCommandLine(null, @"!contextmenu\top"));
         Assert.Equal(new SetupTasks(false, false, false, true, false), SetupTasks.FromCommandLine("cli", "!desktopicon"));
     }
 
