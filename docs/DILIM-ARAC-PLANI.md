@@ -21,8 +21,8 @@ Sıra: en kolaydan en zora. Ortak bileşen, onu ilk kullanan aracın adımında 
 
 | # | Araç | İstek no | Arayüzde yeni | Arka uçta yeni |
 | --- | --- | --- | --- | --- |
-| 1 | PDF birleştir | 20 | İskelet, sıralama listesi, sayfa küçük görseli | — |
-| 2 | Videoları birleştir | 11 | Video küçük görseli | İlk klip çıktı tuvali (boyut, kare hızı); sesli/sessiz klip karışımı |
+| 1 ✅ | PDF birleştir | 20 | İskelet, sıralama listesi, sayfa küçük görseli | — |
+| 2 ✅ | Videoları birleştir | 11 | Video küçük görseli | İlk klip çıktı tuvali (boyut, kare hızı); sesli/sessiz klip karışımı |
 | 3 | PDF sayfalarını düzenle | 21 | Sayfa ızgarası; döndür, çoğalt, sil; sırayı sıfırla | Sayfa döndürme, aynı genişlik |
 | 4 | Görsel kırp | 5 | Tuval + kutu, oran düğmeleri, px girişi | — |
 | 5 | Video hızı | 10 | Video önizleyici, durak noktalı hız kaydırıcısı | Sessiz video desteği (var), perde koruma (var) |
@@ -36,13 +36,21 @@ Sıra: en kolaydan en zora. Ortak bileşen, onu ilk kullanan aracın adımında 
 | 13 | Ses görselleştirici | 16 | Stil (dalga formu / sabit görsel), en-boy | Dikey/kare, sabit görsel |
 | 14 | Bip | 19 | Bip katmanı, birden çok aralık, karşılaştırma | Birden çok aralık |
 | 15 | Fotoğrafı gizle | 6 | Birden çok taşınabilir kutu, düz renk / bulanık, renk | Çoklu kutu, bulanıklık |
-| 16 | Sıkıştır | 1 | Dengeli/Güçlü, hedef boyut veya yüzde, boyutlandırma, orijinal boyut | Hedef boyuta yaklaşan yineleme |
+| 16 | Sıkıştır (PDF ✅, diğerleri) | 1 | Dengeli/Güçlü, hedef boyut veya yüzde, boyutlandırma, orijinal boyut | Hedef boyuta yaklaşan yineleme |
 | 17 | Videoyu gizle | 14 | Kutu başına zaman aralığı, zaman çizelgesi | Çoklu kutu + aralık, bulanıklık |
 | 18 | Kolaj | 7 | Izgara/satır/sütun/öne çıkan, tuval, aralık, köşe, arka plan, sıra | Düzen motoru |
 | 19 | Metadata | 2 | Gruplu alanlar, arama, düzenle/sil, tümünü kaldır | Alan okuma/yazma (resim EXIF/IPTC/XMP, ses/video etiketleri, PDF bilgisi) |
 | 20 | Fotoğrafa not ekle | 4 | Ok, kalem, metin, dikdörtgen, elips, vurgulayıcı, numaralı etiket, büyüteç, resim ekle; geri al | Katman çizimi |
 | 21 | Fotoğraf düzenle | 3 | Canlı önizleme; ışık, renk, detay kaydırıcıları | Pus giderme, netlik, gren, gürültü azaltma |
 | 22 | Yüz / metin algılama | 6 | "Yüzler", "Metin" düğmeleri | Yerel algılama modeli — en ağır iş, en sona |
+
+## PDF boyut düşürücü (öne alındı) ✅
+
+`PdfShrinker` + `PdfShrinkTool`. Akıllı (yalnız görseller; yazı/çizgi vektör kalır) ve Düzleştir (her sayfa tek görsel);
+Hafif 300 dpi/%85 · Baskı 220/%80 · Dengeli 150/%72 · Ekran 110/%60 · En küçük 72/%45. Boyut tahmin edilmez, her ayar
+gerçekten uygulanıp ölçülür; kalite, sayfaların ortasından 150 dpi kesitlerin yapısal benzerliğiyle (SSIM) ölçülür.
+Hedef boyutta seviyeler denenir, sonra iki seviye arası ikiye bölmeyle hedefin hemen altına inilir. "Kaliteyi
+karşılaştır" ilk sayfanın ortasını önce/sonra gösterir.
 
 ## İlkeler
 

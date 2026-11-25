@@ -121,4 +121,80 @@ public class ToolWindowsTests
         Assert.False(primary.IsEnabled);
         window.Close();
     }
+
+    /// <summary>A two-page A3 sheet with a large detailed photo.</summary>
+    private static string PhotoPdf(string name)
+    {
+        Directory.CreateDirectory(Root);
+        var photo = Path.Combine(Root, name + ".jpg");
+        using (var image = new ImageMagick.MagickImage("plasma:orange-teal", 3000, 2000))
+        {
+            image.AddNoise(ImageMagick.NoiseType.Gaussian, 0.15);
+            image.Quality = 95;
+            image.Write(photo);
+        }
+        var path = Path.Combine(Root, name);
+        using var document = new PdfSharp.Pdf.PdfDocument();
+        for (var p = 0; p < 2; p++)
+        {
+            var page = document.AddPage();
+            page.Width = PdfSharp.Drawing.XUnit.FromMillimeter(420); page.Height = PdfSharp.Drawing.XUnit.FromMillimeter(297);
+            using var gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page);
+            using var picture = PdfSharp.Drawing.XImage.FromFile(photo);
+            gfx.DrawImage(picture, 40, 40, page.Width.Point - 80, page.Height.Point - 140);
+            gfx.DrawRectangle(new PdfSharp.Drawing.XPen(PdfSharp.Drawing.XColors.Black, 0.5), 40, page.Height.Point - 80, 300, 30);
+        }
+        document.Save(path);
+        return path;
+    }
+
+    private static string Text(Window window, Func<TextBlock, bool> which) =>
+        window.GetVisualDescendants().OfType<TextBlock>().First(which).Text ?? "";
+
+    [AvaloniaTheory]
+    [InlineData("tr", false)]
+    [InlineData("tr", true)]
+    [InlineData("en", false)]
+    public void Pdf_shrink_measures_compares_and_aims_at_a_target(string language, bool dark)
+    {
+        TestServices.EnsureInitialized(language);
+        var theme = AppHost.Get<ThemeService>();
+        var loc = AppHost.Get<ILocalizer>();
+        try
+        {
+            if (dark) theme.Apply(new ThemeSettings { Mode = ThemeMode.Dark, CornerRadius = 16 }, language);
+            var file = PhotoPdf($"Cephe paftası {language}{dark}.pdf");
+            var window = new PdfShrinkTool([file], loc);
+            window.Show();
+            var calculating = loc["tool.pdfshrink.calculating"];
+            bool Measured() => window.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == loc["tool.pdfshrink.q3"] || t.Text == loc["tool.pdfshrink.q4"] || t.Text == loc["tool.pdfshrink.q2"]);
+            Settle(Measured);
+            for (var i = 0; i < 400 && !Measured(); i++) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(25); }
+            Assert.True(Measured(), "no estimate");
+            RenderTests.Save(window, $"tool-pdf-shrink-{language}{(dark ? "-dark" : "")}.png");
+
+            if (language == "tr" && !dark)
+            {
+                // Compare quality: before and after pictures.
+                var compare = window.GetVisualDescendants().OfType<Button>().Single(b => b.Content as string == loc["tool.pdfshrink.compare"]);
+                compare.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                for (var i = 0; i < 400 && Pictures(window) < 2; i++) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(25); }
+                Assert.Equal(2, Pictures(window));
+
+                // A target: 0.5 MB.
+                window.GetVisualDescendants().OfType<TextBox>().Single().Text = "0,5";
+                bool Picked() => window.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.StartsWith("Seçilen ayar", StringComparison.Ordinal) == true);
+                for (var i = 0; i < 600 && !Picked(); i++) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(25); }
+                Assert.True(Picked(), "no setting picked for the target");
+                window.Height = 1180;
+                RenderTests.Pump();
+                RenderTests.Save(window, "tool-pdf-shrink-target-tr.png");
+            }
+            window.Close();
+        }
+        finally
+        {
+            if (dark) theme.Apply(new ThemeSettings(), language);
+        }
+    }
 }

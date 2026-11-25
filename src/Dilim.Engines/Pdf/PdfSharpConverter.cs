@@ -256,7 +256,7 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IImageTransforme
     /// Opens a PDF to change it. One locked only against changes (it opens without a password) has its pages copied
     /// into a new PDF instead, as when pages are split or extracted: bookmarks and form fields stay behind then.
     /// </summary>
-    private static PdfDocument OpenForChanges(string path)
+    internal static PdfDocument OpenForChanges(string path)
     {
         try
         {
