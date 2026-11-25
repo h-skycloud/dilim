@@ -115,9 +115,54 @@ public sealed class DilimToolTests : IDisposable
             if (id == "muteVideo") Assert.DoesNotContain(streams, s => s.GetProperty("codec_type").GetString() == "audio");
             if (id == "audioChannels") Assert.Equal(1, streams.Single(s => s.GetProperty("codec_type").GetString() == "audio").GetProperty("channels").GetInt32());
             if (id == "cropVideo") Assert.Equal(100, streams.Single(s => s.GetProperty("codec_type").GetString() == "video").GetProperty("width").GetInt32());
-            if (id == "joinVideos") Assert.Equal(1280, streams.Single(s => s.GetProperty("codec_type").GetString() == "video").GetProperty("width").GetInt32());
+            if (id == "joinVideos") Assert.Equal(320, streams.Single(s => s.GetProperty("codec_type").GetString() == "video").GetProperty("width").GetInt32());
         }
         Assert.Equal(hash, SHA256.HashData(File.ReadAllBytes(file)));
+    }
+
+    /// <summary>The first clip is the canvas; a portrait clip is fitted inside it and a silent clip gets silence.</summary>
+    [Fact]
+    public async Task Joining_uses_the_first_clip_as_canvas_and_mixes_silent_clips()
+    {
+        var tools = FfmpegConverter.Locate();
+        Assert.True(tools is not null, "Fetch FFmpeg with build/fetch-engines.ps1 -Only ffmpeg before running Dilim media tests.");
+        var ct = TestContext.Current.CancellationToken;
+        var wide = Path.Combine(_root, "wide.mp4");
+        var tall = Path.Combine(_root, "tall silent.mkv");
+        Assert.Equal(0, (await ProcessRunner.RunAsync(tools.Value.Ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "color=c=orange:s=640x360:r=25:d=1",
+            "-f", "lavfi", "-i", "sine=frequency=440:duration=1", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", wide], TimeSpan.FromSeconds(30), ct)).ExitCode);
+        Assert.Equal(0, (await ProcessRunner.RunAsync(tools.Value.Ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=240x320:r=30:d=1",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", tall], TimeSpan.FromSeconds(30), ct)).ExitCode);
+
+        var output = Assert.Single(await ToolEngine.RunAsync("joinVideos", [wide, tall], new ToolRequest(), Output(), null, ct));
+        var probe = await ToolEngine.ProbeAsync(output, ct);
+        Assert.Equal((640, 360), (probe.Width, probe.Height));
+        Assert.Equal(25, probe.FrameRate, 1);
+        Assert.True(probe.Audio);
+        Assert.InRange(probe.Duration, 1.8, 2.3);
+    }
+
+    [Fact]
+    public async Task Previews_show_a_video_frame_and_a_pdf_page()
+    {
+        var tools = FfmpegConverter.Locate();
+        Assert.True(tools is not null, "Fetch FFmpeg with build/fetch-engines.ps1 -Only ffmpeg before running Dilim media tests.");
+        var ct = TestContext.Current.CancellationToken;
+        var clip = Path.Combine(_root, "frame.mp4");
+        Assert.Equal(0, (await ProcessRunner.RunAsync(tools.Value.Ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "color=c=red:s=320x180:r=10:d=1",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", clip], TimeSpan.FromSeconds(30), ct)).ExitCode);
+        var frame = await ToolPreviews.VideoFrameAsync(clip, 0.5, 120, ct);
+        Assert.NotNull(frame);
+        using (var image = new MagickImage(frame)) Assert.Equal(120u, image.Width);
+        // Past the end of the clip: its first frame instead of nothing.
+        Assert.NotNull(await ToolPreviews.VideoFrameAsync(clip, 30, 120, ct));
+
+        var pdf = Path.Combine(_root, "page.pdf");
+        using (var document = new PdfSharp.Pdf.PdfDocument()) { document.AddPage(); document.AddPage(); document.Save(pdf); }
+        Assert.Equal(2, ToolPreviews.PdfPageCount(pdf));
+        var page = await ToolPreviews.PdfPageAsync(pdf, 1, 100, ct);
+        Assert.NotNull(page);
+        using (var image = new MagickImage(page)) Assert.Equal(100u, image.Width);
     }
 
     [Fact]

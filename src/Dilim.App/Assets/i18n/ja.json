@@ -1107,5 +1107,18 @@
   "engines.package.7zip.name": "7-Zip",
   "engines.package.rhwp.name": "rhwp",
   "engines.package.7zip.description": "Creates and extracts ZIP, 7Z and other archives.",
-  "engines.package.rhwp.description": "Opens HWP/HWPX documents and renders PDF."
+  "engines.package.rhwp.description": "Opens HWP/HWPX documents and renders PDF.",
+  "tool.shell.close": "Close",
+  "tool.shell.show": "Show",
+  "tool.shell.saved_one": "Saved {0}",
+  "tool.shell.saved_many": "Saved {0} files",
+  "tool.order.up": "Move up",
+  "tool.order.down": "Move down",
+  "tool.order.documents": "Document order",
+  "tool.order.playback": "Playback order",
+  "tool.order.need_two": "Select at least two files.",
+  "tool.mergePDF.run": "Merge PDFs",
+  "tool.mergePDF.note": "The order starts as you selected the files. The originals stay as they are; the merged PDF goes into the Dilim folder next to the first file.",
+  "tool.joinVideos.run": "Join Videos",
+  "tool.joinVideos.note": "MP4, MOV and MKV clips can be mixed. The first clip sets the size and frame rate; the others are fitted inside it, and silent clips get silence."
 }

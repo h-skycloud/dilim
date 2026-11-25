@@ -1107,5 +1107,18 @@
   "engines.package.7zip.name": "7-Zip",
   "engines.package.rhwp.name": "rhwp",
   "engines.package.7zip.description": "ZIP, 7Z ve diğer arşivleri oluşturur ve çıkarır.",
-  "engines.package.rhwp.description": "HWP/HWPX belgelerini açar ve PDF oluşturur."
+  "engines.package.rhwp.description": "HWP/HWPX belgelerini açar ve PDF oluşturur.",
+  "tool.shell.close": "Kapat",
+  "tool.shell.show": "Göster",
+  "tool.shell.saved_one": "Kaydedildi: {0}",
+  "tool.shell.saved_many": "{0} dosya kaydedildi",
+  "tool.order.up": "Yukarı taşı",
+  "tool.order.down": "Aşağı taşı",
+  "tool.order.documents": "Belge sırası",
+  "tool.order.playback": "Oynatma sırası",
+  "tool.order.need_two": "En az iki dosya seçin.",
+  "tool.mergePDF.run": "PDF'leri birleştir",
+  "tool.mergePDF.note": "Sıra, dosyaları seçtiğiniz sırayla başlar. Orijinaller olduğu gibi kalır; birleşmiş PDF ilk dosyanın yanındaki Dilim klasörüne kaydedilir.",
+  "tool.joinVideos.run": "Videoları birleştir",
+  "tool.joinVideos.note": "MP4, MOV ve MKV klipler karışık olabilir. Boyutu ve kare hızını ilk klip belirler; diğerleri ona sığdırılır, sessiz kliplere sessizlik eklenir."
 }

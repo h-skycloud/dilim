@@ -1,0 +1,124 @@
+using Avalonia.Controls;
+using Avalonia.Headless.XUnit;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Dilim.App.Services;
+using Dilim.App.Views.Tools;
+using Dilim.Core.Localization;
+using Dilim.Core.Settings;
+using Dilim.Engines.Infrastructure;
+using Dilim.Engines.Tools;
+
+namespace Dilim.App.Tests;
+
+/// <summary>The redesigned tool windows: they render in both themes and run their tool with what the user arranged.</summary>
+public class ToolWindowsTests
+{
+    private static readonly string Root = Path.Combine(Path.GetTempPath(), "dilim-tool-windows", Guid.NewGuid().ToString("N")[..8]);
+
+    private static string Pdf(string name, int pages)
+    {
+        Directory.CreateDirectory(Root);
+        var path = Path.Combine(Root, name);
+        using var document = new PdfSharp.Pdf.PdfDocument();
+        for (var i = 0; i < pages; i++)
+        {
+            var page = document.AddPage();
+            using var gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page);
+            gfx.DrawRectangle(PdfSharp.Drawing.XBrushes.DarkOrange, 60, 80, 300, 200);
+        }
+        document.Save(path);
+        return path;
+    }
+
+    private static string Video(string name, string color, string size)
+    {
+        Directory.CreateDirectory(Root);
+        var path = Path.Combine(Root, name);
+        var ffmpeg = ToolEngine.FfmpegPath ?? throw new InvalidOperationException("FFmpeg is needed for this test");
+        // Off the UI thread: blocking it on an await would never let the continuation run.
+        var made = Task.Run(() => ProcessRunner.RunAsync(ffmpeg, ["-v", "error", "-y", "-f", "lavfi", "-i", $"color=c={color}:s={size}:r=10:d=1",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", path], TimeSpan.FromSeconds(30), CancellationToken.None)).GetAwaiter().GetResult();
+        Assert.Equal(0, made.ExitCode);
+        return path;
+    }
+
+    /// <summary>Lets the background thumbnails arrive and draws.</summary>
+    private static void Settle(Func<bool>? until = null)
+    {
+        for (var i = 0; i < 200 && until?.Invoke() != true; i++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(15);
+        }
+        RenderTests.Pump();
+    }
+
+    private static int Pictures(Window window) => window.GetVisualDescendants().OfType<Image>().Count();
+
+    [AvaloniaTheory]
+    [InlineData("tr", false)]
+    [InlineData("tr", true)]
+    [InlineData("en", false)]
+    public void Merge_pdfs_renders(string language, bool dark)
+    {
+        TestServices.EnsureInitialized(language);
+        var theme = AppHost.Get<ThemeService>();
+        try
+        {
+            if (dark) theme.Apply(new ThemeSettings { Mode = ThemeMode.Dark, CornerRadius = 16 }, language);
+            var files = new[] { Pdf("Vaziyet planı.pdf", 2), Pdf("Kesitler.pdf", 1), Pdf("Detaylar.pdf", 3) };
+            var window = new MergeTool("mergePDF", files, AppHost.Get<ILocalizer>(), (_, _, _, _, _, _) => Task.FromResult<IReadOnlyList<string>>([]));
+            window.Show();
+            Settle(() => Pictures(window) >= 3);
+            RenderTests.Save(window, $"tool-merge-pdf-{language}{(dark ? "-dark" : "")}.png");
+            Assert.Equal(3, Pictures(window));
+            window.Close();
+        }
+        finally
+        {
+            if (dark) theme.Apply(new ThemeSettings(), language);
+        }
+    }
+
+    [AvaloniaFact]
+    public void Join_videos_renders_with_frames_and_runs_in_the_chosen_order()
+    {
+        TestServices.EnsureInitialized("tr");
+        var files = new[] { Video("Çiçekler.mp4", "orange", "320x180"), Video("Ağaç.mp4", "teal", "180x320") };
+        IReadOnlyList<string>? ran = null;
+        var window = new MergeTool("joinVideos", files, AppHost.Get<ILocalizer>(), (id, paths, _, _, _, _) =>
+        {
+            Assert.Equal("joinVideos", id);
+            ran = paths.ToArray();
+            return Task.FromResult<IReadOnlyList<string>>([Path.Combine(Root, "joined.mp4")]);
+        });
+        window.Show();
+        Settle(() => Pictures(window) >= 2);
+        RenderTests.Save(window, "tool-join-videos-tr.png");
+        Assert.Equal(2, Pictures(window));
+
+        // Second clip first, then the main button.
+        window.GetVisualDescendants().OfType<OrderList>().Single().Move(1, 0);
+        var primary = window.GetVisualDescendants().OfType<Button>().Single(b => b.Content as string == AppHost.Get<ILocalizer>()["tool.joinVideos.run"]);
+        primary.Command?.Execute(null);
+        primary.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Settle(() => ran is not null);
+        Assert.Equal([files[1], files[0]], ran);
+        Settle();
+        RenderTests.Save(window, "tool-join-videos-done-tr.png");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void One_file_is_not_enough_to_merge()
+    {
+        TestServices.EnsureInitialized("en");
+        var window = new MergeTool("mergePDF", [Pdf("only.pdf", 1)], AppHost.Get<ILocalizer>(), (_, _, _, _, _, _) => Task.FromResult<IReadOnlyList<string>>([]));
+        window.Show();
+        Settle();
+        var primary = window.GetVisualDescendants().OfType<Button>().Single(b => b.Content as string == AppHost.Get<ILocalizer>()["tool.mergePDF.run"]);
+        Assert.False(primary.IsEnabled);
+        window.Close();
+    }
+}
