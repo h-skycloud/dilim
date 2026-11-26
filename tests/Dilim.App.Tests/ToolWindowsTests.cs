@@ -511,4 +511,84 @@ public class ToolWindowsTests
         Assert.Equal([0.6, 0.9, 1.6, 1.9], asked!.Ranges);
         bleep.Close();
     }
+
+    [AvaloniaFact]
+    public void Redact_compress_and_collage_windows_work()
+    {
+        TestServices.EnsureInitialized("tr");
+        var loc = AppHost.Get<ILocalizer>();
+        ToolRequest? asked = null;
+        Task<IReadOnlyList<string>> Run(string id, IReadOnlyList<string> files, ToolRequest request, Window owner, IProgress<double> progress, CancellationToken ct)
+        {
+            asked = request;
+            return Task.FromResult<IReadOnlyList<string>>([]);
+        }
+        void Go(Window w, string text) { asked = null; Primary(w, text).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Wait(() => asked is not null); }
+
+        // Photo: two boxes, blurred.
+        var photo = Photo("Aile.jpg");
+        var redact = new RedactPhotoTool([photo], loc, Run);
+        redact.Show();
+        var canvas = redact.GetVisualDescendants().OfType<BoxCanvas>().Single();
+        Wait(() => canvas.SourceSize.Width > 0);
+        canvas.Boxes.Add(new CanvasBox { Area = new Avalonia.Rect(200, 150, 300, 200) });
+        canvas.Boxes.Add(new CanvasBox { Area = new Avalonia.Rect(900, 500, 250, 180) });
+        canvas.Select(canvas.Boxes[0]);
+        redact.GetVisualDescendants().OfType<Segmented>().Single().Selected = 1;
+        typeof(RedactPhotoTool).GetMethod("Update", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(redact, null);
+        Wait(() => false, 40);
+        RenderTests.Save(redact, "tool-redact-photo-tr.png");
+        Go(redact, loc["tool.redact.run"]);
+        Assert.Equal(8, asked!.Boxes.Length);
+        Assert.True(asked.Blur);
+        redact.Close();
+
+        // Video: a box drawn on it gets a lane from the playhead to the end.
+        var clip = TestClip("Aile.mp4");
+        var video = new RedactVideoTool([clip], loc, Run);
+        video.Show();
+        var preview = video.GetVisualDescendants().OfType<VideoPreview>().Single();
+        Wait(() => preview.Info is not null);
+        preview.Seek(1);
+        Wait(() => false, 20);
+        preview.Canvas.Boxes.Add(new CanvasBox { Area = new Avalonia.Rect(100, 80, 160, 120) });
+        typeof(BoxCanvas).GetField("Changed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(preview.Canvas);
+        var changed = (MulticastDelegate?)typeof(BoxCanvas).GetField("Changed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(preview.Canvas);
+        changed!.DynamicInvoke();
+        Wait(() => video.GetVisualDescendants().OfType<RangeBar>().Any(), 100);
+        Wait(() => false, 40);
+        RenderTests.Save(video, "tool-redact-video-tr.png");
+        Go(video, loc["tool.redact.run"]);
+        Assert.Equal(1.0, asked!.Ranges[0], 1);
+        Assert.Equal(4.0, asked.Ranges[1], 1);
+        video.Close();
+
+        // Compress: a target size.
+        var compress = new CompressTool([Photo("Portakal.png", 1600, 1200)], loc);
+        compress.Show();
+        compress.GetVisualDescendants().OfType<CheckBox>().Single().IsChecked = true;
+        compress.GetVisualDescendants().OfType<TextBox>().First(t => t.Text == "5").Text = "0,2";
+        Wait(() => false, 20);
+        RenderTests.Save(compress, "tool-compress-tr.png");
+        Primary(compress, loc["tool.compress.run"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Wait(() => compress.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("küçük)") == true), 600);
+        var saved = Directory.EnumerateFiles(Path.Combine(Root, "Dilim"), "Portakal*").Single();
+        Assert.True(new FileInfo(saved).Length <= 0.2 * 1024 * 1024);
+        compress.Close();
+
+        // Collage: featured, 16:9.
+        var collage = new CollageTool([Photo("1.jpg"), Photo("2.jpg", 800, 1200), Photo("3.jpg")], loc);
+        collage.Show();
+        var combos = collage.GetVisualDescendants().OfType<ComboBox>().ToList();
+        combos[0].SelectedIndex = 3; combos[1].SelectedIndex = 2;
+        Wait(() => collage.GetVisualDescendants().OfType<Image>().Any(i => i.Source is not null && i.Bounds.Height > 200), 400);
+        Wait(() => false, 60);
+        RenderTests.Save(collage, "tool-collage-tr.png");
+        Primary(collage, loc["tool.collage.run"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        string? made = null;
+        Wait(() => (made = Directory.EnumerateFiles(Path.Combine(Root, "Dilim"), "Kolaj*").FirstOrDefault()) is not null, 600);
+        Wait(() => false, 40);
+        using (var image = new ImageMagick.MagickImage(made!)) Assert.Equal((2048u, 1152u), (image.Width, image.Height));
+        collage.Close();
+    }
 }

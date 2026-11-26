@@ -68,6 +68,13 @@ public sealed class BoxCanvas : Control
         InvalidateVisual();
     }
 
+    /// <summary>Replaces only the blurred look of the picture (for blurred redaction previews).</summary>
+    public void SetBlurred(Bitmap? blurred)
+    {
+        _blurred = blurred;
+        InvalidateVisual();
+    }
+
     public void Select(CanvasBox? box)
     {
         Selected = box;

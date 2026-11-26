@@ -110,7 +110,8 @@ public static class ToolEngine
             }
             else
             {
-                var output = Path.Combine(outputDirectory, $"{i + 1}-{Path.GetFileNameWithoutExtension(file)}.png");
+                var keep = Path.GetExtension(file).ToLowerInvariant() is ".jpg" or ".jpeg" or ".png" or ".webp" ? Path.GetExtension(file).ToLowerInvariant() : ".png";
+                var output = Path.Combine(outputDirectory, $"{Path.GetFileNameWithoutExtension(file)}{keep}");
                 await Task.Run(() => EditImage(id, file, output, request, ct), ct);
                 outputs.Add(output);
             }
@@ -164,10 +165,11 @@ public static class ToolEngine
                 image.Alpha(AlphaOption.Remove);
                 break;
             case "redactImage":
-                CheckRectangle(r, image.Width, image.Height);
-                // An opaque rectangle is baked into the pixels, never a removable overlay.
-                image.Draw(new Drawables().FillColor(MagickColors.Black).StrokeColor(MagickColors.Black)
-                    .Rectangle(r.X, r.Y, r.X + r.Width - 1, r.Y + r.Height - 1));
+                foreach (var box in r.BoxList())
+                {
+                    if ((long)box.X + box.Width > image.Width || (long)box.Y + box.Height > image.Height) throw new ArgumentException("tool.error.rectangle");
+                    RedactRegion(image, box, r.Blur, r.RedactColor);
+                }
                 image.Strip();
                 break;
             case "annotateImage":
@@ -178,6 +180,26 @@ public static class ToolEngine
         }
         ct.ThrowIfCancellationRequested();
         image.Write(output);
+    }
+
+    /// <summary>
+    /// Covers a region for good: a solid colour, or pixelated into blocks a sixteenth of its size and then softened,
+    /// which no "unblur" can bring back (a plain blur of text can sometimes be reversed).
+    /// </summary>
+    private static void RedactRegion(MagickImage image, (int X, int Y, int Width, int Height) box, bool blur, string color)
+    {
+        if (!blur)
+        {
+            image.Draw(new Drawables().FillColor(new MagickColor(color)).StrokeColor(new MagickColor(color))
+                .Rectangle(box.X, box.Y, box.X + box.Width - 1, box.Y + box.Height - 1));
+            return;
+        }
+        using var part = (MagickImage)image.CloneArea(new MagickGeometry(box.X, box.Y, (uint)box.Width, (uint)box.Height));
+        var block = Math.Max(6, Math.Max(box.Width, box.Height) / 16);
+        part.Scale(new MagickGeometry((uint)Math.Max(1, box.Width / block), (uint)Math.Max(1, box.Height / block)) { IgnoreAspectRatio = true });
+        part.Scale(new MagickGeometry((uint)box.Width, (uint)box.Height) { IgnoreAspectRatio = true });
+        part.GaussianBlur(0, block / 2.0);
+        image.Composite(part, box.X, box.Y, CompositeOperator.Over);
     }
 
     private static void CheckRectangle(ToolRequest r, uint width, uint height)
@@ -237,7 +259,38 @@ public static class ToolEngine
                 break;
             case "splitVideo": args.AddRange(["-force_key_frames", $"expr:gte(t,n_forced*{N(r.End)})", "-f", "segment", "-segment_time", N(r.End), "-reset_timestamps", "1"]); break;
             case "audioChannels": af = AudioPreview.ChannelsFilter(r.Channels, r.LeftVolume, r.RightVolume); break;
-            case "redactVideo": vf = $"drawbox=x={r.X}:y={r.Y}:w={r.Width}:h={r.Height}:color=black:t=fill:enable='between(t,{N(r.Start)},{N(r.End)})'"; break;
+            case "redactVideo":
+            {
+                // Each box covers its own time range (the whole video without one): a solid colour, or pixelated.
+                var boxes = r.BoxList();
+                var ranges = Enumerable.Range(0, boxes.Count).Select(k => r.Ranges.Length >= 2 * (k + 1) ? (r.Ranges[2 * k], r.Ranges[2 * k + 1]) : (r.Start, r.Boxes.Length > 0 ? info.Duration + 1 : r.End)).ToList();
+                foreach (var b in boxes)
+                    if (b.X + b.Width > info.Width || b.Y + b.Height > info.Height) throw new ArgumentException("tool.error.rectangle");
+                string When(int k) => $"enable='between(t,{N(ranges[k].Item1)},{N(ranges[k].Item2)})'";
+                if (!r.Blur)
+                {
+                    var color = r.RedactColor.TrimStart('#');
+                    vf = string.Join(',', boxes.Select((b, k) => $"drawbox=x={b.X}:y={b.Y}:w={b.Width}:h={b.Height}:color=0x{color}:t=fill:{When(k)}"));
+                }
+                else
+                {
+                    var graph = new List<string> { $"[0:v]split={boxes.Count + 1}[base]" + string.Concat(Enumerable.Range(0, boxes.Count).Select(k => $"[c{k}]")) };
+                    for (var k = 0; k < boxes.Count; k++)
+                    {
+                        var b = boxes[k];
+                        var block = Math.Max(6, Math.Max(b.Width, b.Height) / 16);
+                        graph.Add($"[c{k}]crop={b.Width}:{b.Height}:{b.X}:{b.Y},scale=max(1\\,iw/{block}):max(1\\,ih/{block}),scale={b.Width}:{b.Height}:flags=neighbor,gblur=sigma={block / 2}[p{k}]");
+                    }
+                    var last = "base";
+                    for (var k = 0; k < boxes.Count; k++)
+                    {
+                        graph.Add($"[{last}][p{k}]overlay={boxes[k].X}:{boxes[k].Y}:{When(k)}[o{k}]");
+                        last = $"o{k}";
+                    }
+                    args.AddRange(["-filter_complex", string.Join(';', graph), "-map", $"[{last}]", "-map", "0:a?"]);
+                }
+                break;
+            }
             case "redactAudio":
                 // Speech silenced and a tone in its place inside every range.
                 var bleeps = r.Ranges.Length > 0

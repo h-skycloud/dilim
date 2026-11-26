@@ -130,6 +130,10 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
         "normalizeAudio" => new Views.Tools.NormalizeTool(files, loc, RunAsync),
         "audioToVideo" => new Views.Tools.VisualizerTool(files, loc, RunAsync),
         "redactAudio" => new Views.Tools.BleepTool(files, loc, RunAsync),
+        "redactImage" => new Views.Tools.RedactPhotoTool(files, loc, RunAsync),
+        "redactVideo" => new Views.Tools.RedactVideoTool(files, loc, RunAsync),
+        "createCollage" => new Views.Tools.CollageTool(files, loc),
+        "compress" when !files.All(f => Path.GetExtension(f).Equals(".pdf", StringComparison.OrdinalIgnoreCase)) => new Views.Tools.CompressTool(files, loc),
         _ => null,
     };
 

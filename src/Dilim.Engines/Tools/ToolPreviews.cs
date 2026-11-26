@@ -32,6 +32,31 @@ public static class ToolPreviews
             }, ct);
         }, file, ct);
 
+    /// <summary>A picture, turned upright, <paramref name="width"/> pixels wide at most, as PNG.</summary>
+    public static Task<byte[]?> ImageAsync(string file, int width, CancellationToken ct = default) =>
+        CachedAsync($"image|{file}|{width}", path => Task.Run(() =>
+        {
+            using var image = new ImageMagick.MagickImage(file);
+            image.AutoOrient();
+            if (image.Width > width) image.Resize((uint)width, 0);
+            image.Write(path, ImageMagick.MagickFormat.Png);
+        }, ct), file, ct);
+
+    /// <summary>The same picture pixelated and blurred, for previews of blurred redactions.</summary>
+    public static Task<byte[]?> BlurredImageAsync(string file, int width, CancellationToken ct = default) =>
+        CachedAsync($"blur|{file}|{width}", path => Task.Run(() =>
+        {
+            using var image = new ImageMagick.MagickImage(file);
+            image.AutoOrient();
+            if (image.Width > width) image.Resize((uint)width, 0);
+            var block = Math.Max(4, (int)image.Width / 60);
+            var (w, h) = (image.Width, image.Height);
+            image.Scale(new ImageMagick.MagickGeometry((uint)Math.Max(1, w / block), (uint)Math.Max(1, h / block)) { IgnoreAspectRatio = true });
+            image.Scale(new ImageMagick.MagickGeometry(w, h) { IgnoreAspectRatio = true });
+            image.GaussianBlur(0, block / 2.0);
+            image.Write(path, ImageMagick.MagickFormat.Png);
+        }, ct), file, ct);
+
     /// <summary>The number of pages of a PDF.</summary>
     public static int PdfPageCount(string file) => Conversion.GetPageCount(File.ReadAllBytes(file), password: null);
 

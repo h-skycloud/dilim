@@ -37,6 +37,15 @@ public sealed record ToolRequest
     /// <summary>Ranges as start, end, start, end… in seconds (bleeps, video redactions).</summary>
     public double[] Ranges { get; init; } = [];
 
+    /// <summary>Rectangles as x, y, width, height, x, y… in source pixels (redactions). Empty: X/Y/Width/Height.</summary>
+    public int[] Boxes { get; init; } = [];
+
+    /// <summary>The fill of solid redactions.</summary>
+    public string RedactColor { get; init; } = "#000000";
+
+    /// <summary>Redactions are blurred (pixelated beyond recognition) instead of filled with <see cref="Color"/>.</summary>
+    public bool Blur { get; init; }
+
     /// <summary>trimAudio: also remove silence at the very start and end.</summary>
     public bool TrimSilence { get; init; }
 
@@ -59,6 +68,11 @@ public sealed record ToolRequest
     /// <summary>Times in seconds: frames to save (videoSnapshots), points to split at (splitVideo).</summary>
     public double[] Times { get; init; } = [];
 
+    /// <summary>The rectangles: <see cref="Boxes"/>, or the single X/Y/Width/Height.</summary>
+    public IReadOnlyList<(int X, int Y, int Width, int Height)> BoxList() => Boxes.Length > 0
+        ? Enumerable.Range(0, Boxes.Length / 4).Select(k => (Boxes[4 * k], Boxes[4 * k + 1], Boxes[4 * k + 2], Boxes[4 * k + 3])).ToList()
+        : [(X, Y, Width, Height)];
+
     public void Validate(string id)
     {
         if (id == "compress" && (ImageFormat is not ("webp" or "jpg" or "avif") || PdfDpi is < 36 or > 1200
@@ -78,10 +92,13 @@ public sealed record ToolRequest
         if (Shape is not ("16:9" or "9:16" or "1:1") || VisualStyle is not ("waveform" or "image")) throw new ArgumentException("tool.error.number");
         if (id == "changeVideoSpeed" && (!double.IsFinite(Speed) || Speed < .25 || Speed > 4))
             throw new ArgumentException("tool.error.speed");
-        if (id is "cropVideo" or "redactVideo" or "redactImage" or "annotateImage")
+        if (Boxes.Length % 4 != 0 || Boxes.Any(v => v < 0)) throw new ArgumentException("tool.error.rectangle");
+        if (id is "cropVideo" or "redactVideo" or "redactImage" or "annotateImage" && Boxes.Length == 0)
             if (X < 0 || Y < 0 || Width < 1 || Height < 1) throw new ArgumentException("tool.error.rectangle");
         if (Quality is < 1 or > 100 || Columns is < 1 or > 8 || Channels is < 1 or > 2 || FontSize is < 8 or > 200)
             throw new ArgumentException("tool.error.number");
+        if (id is "redactImage" or "redactVideo" && !System.Text.RegularExpressions.Regex.IsMatch(RedactColor, "^#[0-9a-fA-F]{6}$"))
+            throw new ArgumentException("tool.error.color");
         if (id is "annotateImage" or "frameImage")
             if (!System.Text.RegularExpressions.Regex.IsMatch(Color, "^#[0-9a-fA-F]{6}$"))
                 throw new ArgumentException("tool.error.color");
