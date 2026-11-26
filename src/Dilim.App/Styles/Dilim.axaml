@@ -365,4 +365,10 @@
   <Style Selector="Button.transport:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
   </Style>
+  <Style Selector="Border.channel-badge">
+    <Setter Property="Background" Value="{DynamicResource AccentFaintBrush}" />
+  </Style>
+  <Style Selector="Border.channel-badge TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource AccentStrongBrush}" />
+  </Style>
 </Styles>

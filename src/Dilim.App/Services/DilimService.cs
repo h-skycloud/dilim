@@ -125,6 +125,11 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
         "cropVideo" => new Views.Tools.CropVideoTool(files, loc, RunAsync),
         "trimVideo" => new Views.Tools.TrimVideoTool(files, loc, RunAsync),
         "splitVideo" => new Views.Tools.SplitVideoTool(files, loc, RunAsync),
+        "trimAudio" => new Views.Tools.TrimAudioTool(files, loc, RunAsync),
+        "audioChannels" => new Views.Tools.AudioChannelsTool(files, loc, RunAsync),
+        "normalizeAudio" => new Views.Tools.NormalizeTool(files, loc, RunAsync),
+        "audioToVideo" => new Views.Tools.VisualizerTool(files, loc, RunAsync),
+        "redactAudio" => new Views.Tools.BleepTool(files, loc, RunAsync),
         _ => null,
     };
 

@@ -426,4 +426,89 @@ public class ToolWindowsTests
         Assert.Equal(2, asked!.Times.Length);
         split.Close();
     }
+
+    private static string Voice(string name)
+    {
+        Directory.CreateDirectory(Root);
+        var path = Path.Combine(Root, name);
+        var ffmpeg = ToolEngine.FfmpegPath ?? throw new InvalidOperationException("FFmpeg is needed for this test");
+        var made = Task.Run(() => ProcessRunner.RunAsync(ffmpeg, ["-v", "error", "-y", "-f", "lavfi", "-i",
+            "aevalsrc='0.6*sin(2*PI*300*t)*(between(t,0.5,1.1)+between(t,1.5,2.1))|0.3*sin(2*PI*300*t)*(between(t,0.5,1.1)+between(t,1.5,2.1))':s=44100:d=2.5",
+            "-c:a", "pcm_s16le", path], TimeSpan.FromSeconds(30), CancellationToken.None)).GetAwaiter().GetResult();
+        Assert.Equal(0, made.ExitCode);
+        return path;
+    }
+
+    [AvaloniaFact]
+    public void Audio_tools_render_and_ask_the_engine_for_what_was_chosen()
+    {
+        TestServices.EnsureInitialized("tr");
+        var loc = AppHost.Get<ILocalizer>();
+        var voice = Voice("Duraklamalı ses.wav");
+        ToolRequest? asked = null;
+        Task<IReadOnlyList<string>> Run(string id, IReadOnlyList<string> files, ToolRequest request, Window owner, IProgress<double> progress, CancellationToken ct)
+        {
+            asked = request;
+            return Task.FromResult<IReadOnlyList<string>>([]);
+        }
+        void Go(Window w, string text) { asked = null; Primary(w, text).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Wait(() => asked is not null); }
+        bool Drawn(Window w) => w.GetVisualDescendants().OfType<WaveformView>().All(v => v.Peaks.Length > 0);
+
+        var trim = new TrimAudioTool([voice], loc, Run);
+        trim.Show();
+        Wait(() => Drawn(trim));
+        trim.GetVisualDescendants().OfType<CheckBox>().Single().IsChecked = true;
+        Wait(() => false, 20);
+        RenderTests.Save(trim, "tool-audio-trim-tr.png");
+        Go(trim, loc["tool.crop.apply"]);
+        Assert.True(asked!.TrimSilence);
+        Assert.Equal(2.5, asked.End, 2);
+        trim.Close();
+
+        var channels = new AudioChannelsTool([voice], loc, Run);
+        channels.Show();
+        Wait(() => Drawn(channels));
+        channels.GetVisualDescendants().OfType<Segmented>().Single().Selected = 0;
+        channels.GetVisualDescendants().OfType<Slider>().First().Value = 50;
+        Wait(() => false, 20);
+        RenderTests.Save(channels, "tool-audio-channels-tr.png");
+        Go(channels, loc["tool.crop.apply"]);
+        Assert.Equal((1, 0.5, 1.0), (asked!.Channels, asked.LeftVolume, asked.RightVolume));
+        channels.Close();
+
+        var normalize = new NormalizeTool([voice], loc, Run);
+        normalize.Show();
+        Wait(() => Drawn(normalize) && normalize.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.StartsWith("Giriş:", StringComparison.Ordinal) == true));
+        normalize.GetVisualDescendants().OfType<Slider>().First().Value = -20;
+        Wait(() => false, 20);
+        RenderTests.Save(normalize, "tool-audio-normalize-tr.png");
+        Go(normalize, loc["tool.normalize.run"]);
+        Assert.Equal(-20, asked!.TargetLufs);
+        normalize.Close();
+
+        var visual = new VisualizerTool([voice], loc, Run);
+        visual.Show();
+        visual.GetVisualDescendants().OfType<Segmented>().Last().Selected = 1;
+        Wait(() => visual.GetVisualDescendants().OfType<Image>().Any(i => i.Source is not null));
+        Wait(() => false, 40);
+        RenderTests.Save(visual, "tool-audio-visualizer-tr.png");
+        Go(visual, loc["tool.visual.run"]);
+        Assert.Equal(("waveform", "9:16"), (asked!.VisualStyle, asked.Shape));
+        visual.Close();
+
+        var bleep = new BleepTool([voice], loc, Run);
+        bleep.Show();
+        Wait(() => Drawn(bleep));
+        var lane = bleep.GetVisualDescendants().OfType<BleepLane>().Single();
+        lane.Ranges.Add((0.6, 0.9)); lane.Ranges.Add((1.6, 1.9));
+        lane.InvalidateVisual();
+        Wait(() => false, 20);
+        var update = typeof(BleepTool).GetMethod("Update", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        update.Invoke(bleep, null);
+        Wait(() => false, 20);
+        RenderTests.Save(bleep, "tool-audio-bleep-tr.png");
+        Go(bleep, loc["tool.bleep.run"]);
+        Assert.Equal([0.6, 0.9, 1.6, 1.9], asked!.Ranges);
+        bleep.Close();
+    }
 }

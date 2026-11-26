@@ -34,6 +34,28 @@ public sealed record ToolRequest
     public string Color { get; init; } = "#FFFFFF";
     public string Pages { get; init; } = "1";
 
+    /// <summary>Ranges as start, end, start, end… in seconds (bleeps, video redactions).</summary>
+    public double[] Ranges { get; init; } = [];
+
+    /// <summary>trimAudio: also remove silence at the very start and end.</summary>
+    public bool TrimSilence { get; init; }
+
+    /// <summary>audioChannels: left and right volume, 0–2 (1 = as it is).</summary>
+    public double LeftVolume { get; init; } = 1;
+    public double RightVolume { get; init; } = 1;
+
+    /// <summary>normalizeAudio: target loudness (LUFS), loudness range (LU), true peak limit (dBTP).</summary>
+    public double TargetLufs { get; init; } = -16;
+    public double LoudnessRange { get; init; } = 11;
+    public double TruePeak { get; init; } = -1.5;
+
+    /// <summary>audioToVideo: "waveform" (moving) or "image" (a still picture), and the shape "16:9", "9:16" or "1:1".</summary>
+    public string VisualStyle { get; init; } = "waveform";
+    public string Shape { get; init; } = "16:9";
+
+    /// <summary>audioToVideo with a still picture: the picture; the waveform as a picture when empty.</summary>
+    public string ImagePath { get; init; } = "";
+
     /// <summary>Times in seconds: frames to save (videoSnapshots), points to split at (splitVideo).</summary>
     public double[] Times { get; init; } = [];
 
@@ -43,13 +65,17 @@ public sealed record ToolRequest
             || PdfQuality is < 1 or > 100 || VideoCrf is < 0 or > 51 || VideoHeight is < 0 or > 4320
             || !double.IsFinite(VideoFrameRate) || VideoFrameRate is < 0 or > 240 || VideoFrameRate is > 0 and < 1 || AudioBitrateKbps is < 32 or > 320
             || !Enum.IsDefined(VideoCodec))) throw new ArgumentException("tool.error.number");
-        if (id is "trimVideo" or "trimAudio" or "redactAudio" or "redactVideo")
+        if (id is "trimVideo" or "trimAudio" or "redactAudio" or "redactVideo" && Ranges.Length == 0)
             if (!double.IsFinite(Start) || !double.IsFinite(End) || Start < 0 || End <= Start)
                 throw new ArgumentException("tool.error.time");
         if (id == "splitVideo" && Times.Length == 0 && (!double.IsFinite(End) || End < 1))
             throw new ArgumentException("tool.error.time");
         if (id == "videoSnapshots" && (!double.IsFinite(Start) || Start < 0)) throw new ArgumentException("tool.error.time");
         if (Times.Any(t => !double.IsFinite(t) || t < 0)) throw new ArgumentException("tool.error.time");
+        if (Ranges.Length % 2 != 0 || Ranges.Any(t => !double.IsFinite(t) || t < 0)) throw new ArgumentException("tool.error.time");
+        if (LeftVolume is < 0 or > 2 || RightVolume is < 0 or > 2 || TargetLufs is < -40 or > -5 || LoudnessRange is < 1 or > 30 || TruePeak is < -9 or > 0)
+            throw new ArgumentException("tool.error.number");
+        if (Shape is not ("16:9" or "9:16" or "1:1") || VisualStyle is not ("waveform" or "image")) throw new ArgumentException("tool.error.number");
         if (id == "changeVideoSpeed" && (!double.IsFinite(Speed) || Speed < .25 || Speed > 4))
             throw new ArgumentException("tool.error.speed");
         if (id is "cropVideo" or "redactVideo" or "redactImage" or "annotateImage")

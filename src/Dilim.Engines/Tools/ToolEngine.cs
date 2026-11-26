@@ -83,7 +83,11 @@ public static class ToolEngine
             var format = ProfileSelector.DetectFormats([file]).FirstOrDefault();
             if (format?.Category is FormatCategory.Video or FormatCategory.Audio)
             {
-                var extension = format.Category == FormatCategory.Audio && id != "audioToVideo" ? ".m4a" : ".mp4";
+                // Sound stays in a lossless file as it was (WAV, FLAC); everything else becomes M4A (AAC).
+                var source = Path.GetExtension(file).ToLowerInvariant();
+                var extension = format.Category == FormatCategory.Audio && id != "audioToVideo"
+                    ? source is ".wav" or ".flac" ? source : ".m4a"
+                    : ".mp4";
                 var stem = $"{i + 1}-{Path.GetFileNameWithoutExtension(file)}";
                 if (id == "videoSnapshots" && request.Times.Length > 0)
                 {
@@ -196,17 +200,21 @@ public static class ToolEngine
         if (id == "videoSnapshots" && info.Duration > 0 && r.Start >= info.Duration) throw new ArgumentException("tool.error.time");
         if (id is "normalizeAudio" or "audioChannels" or "redactAudio" or "audioToVideo" && !audio)
             throw new ArgumentException("tool.error.audio");
-        if (id is "trimVideo" or "trimAudio" or "redactVideo" or "redactAudio")
-            if (info.Duration > 0 && r.End > info.Duration + .05) throw new ArgumentException("tool.error.time");
+        if (id is "trimVideo" or "trimAudio" or "redactVideo" or "redactAudio" && info.Duration > 0)
+            if (r.Ranges.Length > 0 ? r.Ranges.Any(t => t > info.Duration + .05) : r.End > info.Duration + .05)
+                throw new ArgumentException("tool.error.time");
         if (id is "redactVideo" or "cropVideo") CheckRectangle(r, (uint)info.Width, (uint)info.Height);
         string? vf = null, af = null;
         switch (id)
         {
             case "compress": args.AddRange(video ? ["-crf", "30"] : ["-b:a", "96k"]); break;
             case "removeMetadata": args.AddRange(["-map_metadata", "-1", "-map_chapters", "-1"]); break;
-            case "normalizeAudio": af = "loudnorm=I=-16:TP=-1.5:LRA=11"; break;
+            case "normalizeAudio": af = $"loudnorm=I={N(r.TargetLufs)}:TP={N(r.TruePeak)}:LRA={N(r.LoudnessRange)}"; break;
             case "muteVideo": args.Add("-an"); break;
-            case "trimVideo": case "trimAudio": args.AddRange(["-ss", N(r.Start), "-t", N(r.End - r.Start)]); break;
+            case "trimVideo": case "trimAudio":
+                args.AddRange(["-ss", N(r.Start), "-t", N(r.End - r.Start)]);
+                if (id == "trimAudio" && r.TrimSilence) af = AudioPreview.TrimSilenceFilter;
+                break;
             case "cropVideo": vf = $"crop={r.Width / 2 * 2}:{r.Height / 2 * 2}:{r.X}:{r.Y}"; break;
             case "changeVideoSpeed":
                 vf = $"setpts=(PTS-STARTPTS)/{N(r.Speed)}";
@@ -228,13 +236,31 @@ public static class ToolEngine
                 args.AddRange(["-force_key_frames", points, "-f", "segment", "-segment_times", points, "-reset_timestamps", "1"]);
                 break;
             case "splitVideo": args.AddRange(["-force_key_frames", $"expr:gte(t,n_forced*{N(r.End)})", "-f", "segment", "-segment_time", N(r.End), "-reset_timestamps", "1"]); break;
-            case "audioChannels": args.AddRange(["-ac", r.Channels.ToString(CultureInfo.InvariantCulture)]); break;
+            case "audioChannels": af = AudioPreview.ChannelsFilter(r.Channels, r.LeftVolume, r.RightVolume); break;
             case "redactVideo": vf = $"drawbox=x={r.X}:y={r.Y}:w={r.Width}:h={r.Height}:color=black:t=fill:enable='between(t,{N(r.Start)},{N(r.End)})'"; break;
             case "redactAudio":
-                // Gate both sources so speech is absent inside the censored interval.
-                args.AddRange(["-filter_complex", $"[0:a]volume=0:enable='between(t,{N(r.Start)},{N(r.End)})'[clean];sine=frequency=1000:sample_rate=48000:duration={N(info.Duration)}[tone];[tone]volume=0.15:enable='between(t,{N(r.Start)},{N(r.End)})',volume=0:enable='not(between(t,{N(r.Start)},{N(r.End)}))'[bleep];[clean][bleep]amix=inputs=2:duration=first:normalize=0[out]", "-map", "[out]"]);
+                // Speech silenced and a tone in its place inside every range.
+                var bleeps = r.Ranges.Length > 0
+                    ? Enumerable.Range(0, r.Ranges.Length / 2).Select(k => (r.Ranges[2 * k], r.Ranges[2 * k + 1])).ToList()
+                    : [(r.Start, r.End)];
+                args.AddRange(["-filter_complex", "[0:a]" + AudioPreview.BleepFilter(bleeps) + "[out]", "-map", "[out]"]);
                 break;
-            case "audioToVideo": args.AddRange(["-filter_complex", "[0:a]showwaves=s=1280x720:mode=cline:colors=0xF35B28:rate=30,format=yuv420p[v]", "-map", "[v]", "-map", "0:a:0", "-shortest"]); break;
+            case "audioToVideo":
+            {
+                var (vw, vh) = r.Shape switch { "9:16" => (720, 1280), "1:1" => (1080, 1080), _ => (1280, 720) };
+                if (r.VisualStyle == "image")
+                {
+                    // A still picture (or the whole recording's waveform as one) for as long as the sound lasts.
+                    var picture = r.ImagePath.Length > 0 && File.Exists(r.ImagePath) ? r.ImagePath : await WaveformPictureAsync(tools.Ffmpeg, files[0], vw, vh, ct);
+                    args.AddRange(["-loop", "1", "-framerate", "2", "-i", picture]);
+                    args.AddRange(["-filter_complex", $"[1:v]scale={vw}:{vh}:force_original_aspect_ratio=decrease,pad={vw}:{vh}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,format=yuv420p[v]",
+                        "-map", "[v]", "-map", "0:a:0", "-shortest", "-tune", "stillimage"]);
+                }
+                else
+                    args.AddRange(["-filter_complex", $"[0:a]showwaves=s={vw}x{vh / 2}:mode=cline:colors=0xF35B28:rate=30,pad={vw}:{vh}:0:(oh-ih)/2:color=black,format=yuv420p[v]",
+                        "-map", "[v]", "-map", "0:a:0", "-shortest"]);
+                break;
+            }
             case "joinVideos":
                 var probes = new List<MediaProbe> { info };
                 foreach (var file in files.Skip(1)) probes.Add(await ProbeAsync(tools.Ffprobe, file, ct));
@@ -268,7 +294,9 @@ public static class ToolEngine
         // Cropping the picture keeps the sound exactly as it was (copied, not encoded again) when MP4 can hold it.
         var copyAudio = id == "cropVideo" && audio && await AudioFitsMp4Async(tools.Ffprobe, files[0], ct);
         if (Path.GetExtension(output) == ".mp4") args.AddRange(["-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p", "-c:a", copyAudio ? "copy" : "aac"]);
-        else if (Path.GetExtension(output) == ".m4a") args.AddRange(["-vn", "-c:a", "aac"]);
+        else if (Path.GetExtension(output) == ".m4a") args.AddRange(["-vn", "-c:a", "aac", "-b:a", "192k"]);
+        else if (Path.GetExtension(output) == ".wav") args.AddRange(["-vn", "-c:a", "pcm_s16le"]);
+        else if (Path.GetExtension(output) == ".flac") args.AddRange(["-vn", "-c:a", "flac"]);
         args.Add(output);
         try
         {
@@ -282,6 +310,22 @@ public static class ToolEngine
             if (File.Exists(output)) File.Delete(output);
             throw;
         }
+    }
+
+    /// <summary>The still waveform picture a visualization would use, for the tool's preview.</summary>
+    public static Task<string> WaveformPictureAsync(string file, int width, int height, CancellationToken ct) =>
+        WaveformPictureAsync(FfmpegConverter.Locate()?.Ffmpeg ?? throw new InvalidOperationException("tool.error.ffmpeg"), file, width, height, ct);
+
+    /// <summary>The waveform of the whole recording as one picture, for a still visualization.</summary>
+    internal static async Task<string> WaveformPictureAsync(string ffmpeg, string file, int width, int height, CancellationToken ct)
+    {
+        var picture = Path.Combine(Path.GetTempPath(), "dilim-previews", Guid.NewGuid().ToString("N")[..8] + "-wave.png");
+        Directory.CreateDirectory(Path.GetDirectoryName(picture)!);
+        var result = await ProcessRunner.RunAsync(ffmpeg, ["-hide_banner", "-loglevel", "error", "-nostdin", "-y", "-i", file,
+            "-filter_complex", $"showwavespic=s={width}x{height / 2}:colors=0xF35B28,pad={width}:{height}:0:(oh-ih)/2:color=black", "-frames:v", "1", picture],
+            TimeSpan.FromMinutes(5), ct);
+        if (result.ExitCode != 0) throw new InvalidOperationException(FfmpegRunner.Summarize(result.StandardError));
+        return picture;
     }
 
     private static async Task<bool> AudioFitsMp4Async(string probe, string file, CancellationToken ct)

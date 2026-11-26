@@ -223,13 +223,13 @@ public abstract class ToolShell : Window
     }
 
     /// <summary>A setting on one line: its name on the left, the control on the right ("Style    Solid | Blur").</summary>
-    protected static Grid Row(string label, Control control, double top = 14)
+    protected static Grid Row(string label, Control control, double top = 14, bool stretch = false)
     {
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), Margin = new Thickness(0, top, 0, 0) };
         var name = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0) };
         name.Classes.Add("muted");
         grid.Children.Add(name);
-        control.HorizontalAlignment = control.HorizontalAlignment == HorizontalAlignment.Stretch ? HorizontalAlignment.Stretch : HorizontalAlignment.Right;
+        control.HorizontalAlignment = stretch ? HorizontalAlignment.Stretch : HorizontalAlignment.Right;
         control.VerticalAlignment = VerticalAlignment.Center;
         Grid.SetColumn(control, 1);
         grid.Children.Add(control);
