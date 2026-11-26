@@ -779,7 +779,7 @@ public class RenderTests
             var vm = AppHost.Get<RadialViewModel>();
             vm.Load([@"C:\gis\roads.shp", @"C:\gis\parcels.shp"], clickMode: true);
             vm.FitToThisDonut();
-            Assert.Equal(["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz"], vm.Presets.Select(p => p.Id));
+            Assert.Equal(["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz", "zip-all"], vm.Presets.Select(p => p.Id));
             Assert.All(vm.Items, item => Assert.True(item.IsEnabled));
             var window = new RadialWindow { DataContext = vm };
             window.Show();
@@ -825,7 +825,7 @@ public class RenderTests
         window.DonutControl.SetExternalHighlight(1);
         Pump();
 
-        Assert.Equal(10, vm.Items.Count); // with "Trace to SVG" and "Line art to SVG"
+        Assert.Equal(11, vm.Items.Count); // with "Trace to SVG", "Line art to SVG" and "Compress"
         Assert.Equal(title, vm.CenterTitle);
         Save(window, $"donut-images-{language}.png");
         window.Close();
@@ -1262,7 +1262,7 @@ public class RenderTests
         {
             vm.SelectedProfile = vm.Profiles.Single(p => p.Profile == photos);
             Pump();
-            var editor = window.GetVisualDescendants().OfType<TagEditor>().Single();
+            var editor = window.GetVisualDescendants().OfType<TagEditor>().Single(e => e.Name == "ExtensionEditor");
             editor.FocusInput();
             Pump();
             if (dark)
@@ -1623,7 +1623,7 @@ public class RenderTests
         {
             vm.SelectedProfile = vm.Profiles.Single(p => p.Profile.Id == "geo");
             Pump();
-            Assert.Equal(["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz"], vm.SelectedProfile.Profile.PresetIds);
+            Assert.Equal(["to-geojson", "to-shp", "to-kml", "to-csv", "to-gpx", "to-kmz", "zip-all"], vm.SelectedProfile.Profile.PresetIds);
             Assert.Contains("shp", vm.ExtensionTags!.Tags.Select(t => t.Text.TrimStart('.')));
             Save(window, $"toolbar-geospatial-{language}.png");
         });

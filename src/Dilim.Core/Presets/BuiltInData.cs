@@ -345,7 +345,33 @@ public static class BuiltInData
     /// with presets for its files that aren't on its front: less common formats and tools (rotate, merge, compress
     /// into one ZIP, ...). The fronts are as they were before back faces.
     /// </summary>
-    public static List<ToolbarProfile> CreateProfiles() =>
+    /// <summary>
+    /// The built-in donuts. "Compress" (one ZIP) is on the front of every one with room for it: compressing means
+    /// archiving, and it belongs with the main slices. Reducing a file's size is a tool ("Reduce size").
+    /// </summary>
+    public static List<ToolbarProfile> CreateProfiles()
+    {
+        var profiles = CreateProfilesCore();
+        foreach (var profile in profiles)
+            PutZipOnFront(profile);
+        return profiles;
+    }
+
+    /// <summary>Moves "Compress" (zip-all) from the back face to the end of the front, when the front has room.</summary>
+    public static bool PutZipOnFront(ToolbarProfile profile)
+    {
+        if (profile.PresetIds.Contains(ZipAll))
+            return profile.BackPresetIds?.Remove(ZipAll) == true;
+        if (profile.PresetIds.Count >= ToolbarProfile.MaxSlices)
+            return false;
+        profile.PresetIds.Add(ZipAll);
+        profile.BackPresetIds?.Remove(ZipAll);
+        return true;
+    }
+
+    public const string ZipAll = "zip-all";
+
+    private static List<ToolbarProfile> CreateProfilesCore() =>
     [
         new()
         {
@@ -359,7 +385,7 @@ public static class BuiltInData
             Id = "pdf", NameKey = "profile.pdf",
             Extensions = ["pdf"],
             PresetIds = [.. PdfDonut],
-            BackPresetIds = ["to-hwp", "to-webp", "to-tiff", "to-html", "to-odt", "to-rtf", "to-azw3", "to-cbz", "zip-all"],
+            BackPresetIds = ["compress-pdf", "to-hwp", "to-webp", "to-tiff", "to-html", "to-odt", "to-rtf", "to-azw3", "to-cbz"],
         },
         new()
         {
@@ -395,7 +421,7 @@ public static class BuiltInData
     /// stays a preset to add in Settings → Toolbar.
     /// </summary>
     public static readonly IReadOnlyList<string> PdfDonut =
-        ["compress-pdf", "to-png", "to-jpg", "pdf-long-image", "to-docx", "pdf-slides", "to-txt", "to-md", "to-epub", "to-hwpx", "pdf-split", "merge-pdf"];
+        ["zip-all", "to-png", "to-jpg", "pdf-long-image", "to-docx", "pdf-slides", "to-txt", "to-md", "to-epub", "to-hwpx", "pdf-split", "merge-pdf"];
 
     /// <summary>The PDF donut of schemas 18–30, before "Compress PDF" took the first slice (and "HWP" the back face).</summary>
     public static readonly IReadOnlyList<string> PdfDonutBefore31 =

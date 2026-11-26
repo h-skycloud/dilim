@@ -51,20 +51,21 @@ public class BackFaceTests
             // Nothing moved off the front, nothing shown twice.
             Assert.Empty(back.Intersect(profile.PresetIds));
         }
-        // Only archives have nothing more to offer ("One ZIP" is on their front since settings schema 28).
-        Assert.Equal(["archives"], BuiltInData.CreateProfiles().Where(p => p.BackPresetIds!.Count == 0).Select(p => p.Id));
+        // A donut whose back face only had "Compress" has nothing more to offer: it moved to the front.
+        Assert.All(BuiltInData.CreateProfiles().Where(p => p.BackPresetIds!.Count == 0), p => Assert.Contains("zip-all", p.PresetIds));
+        Assert.Contains(BuiltInData.CreateProfiles(), p => p.Id == "archives" && p.BackPresetIds!.Count == 0);
     }
 
     [Fact]
-    public void The_fronts_stay_as_they_were_before_back_faces()
+    public void The_fronts_keep_their_slices_and_end_with_compress()
     {
-        Assert.Equal(["to-png", "to-jpg", "to-webp", "to-pdf", "trace-svg", "trace-line-art", "to-tiff", "to-bmp", "to-ico", "half-size"],
+        Assert.Equal(["to-png", "to-jpg", "to-webp", "to-pdf", "trace-svg", "trace-line-art", "to-tiff", "to-bmp", "to-ico", "half-size", "zip-all"],
             BuiltIn("images").PresetIds);
         Assert.Equal(BuiltInData.PdfDonut, BuiltIn("pdf").PresetIds);
-        Assert.Equal(["to-pdf", "to-hwpx", "to-hwp", "to-docx", "to-odt", "to-txt", "to-html", "to-epub", "to-png", "merge-pdf"],
+        Assert.Equal(["to-pdf", "to-hwpx", "to-hwp", "to-docx", "to-odt", "to-txt", "to-html", "to-epub", "to-png", "merge-pdf", "zip-all"],
             BuiltIn("office").PresetIds);
         Assert.Equal(["to-pdf", "merge-pdf", "zip-all", "to-png", "to-txt"], BuiltIn("mixed").PresetIds);
-        Assert.Equal(["to-mp4", "mp4-720", "mp4-hevc", "to-webm", "to-mov", "to-gif", "to-mp3", "extract-subtitles", "to-mkv", "to-avi"],
+        Assert.Equal(["to-mp4", "mp4-720", "mp4-hevc", "to-webm", "to-mov", "to-gif", "to-mp3", "extract-subtitles", "to-mkv", "to-avi", "zip-all"],
             BuiltIn("video").PresetIds);
     }
 
@@ -108,7 +109,8 @@ public class BackFaceTests
             Assert.Equal(expected, profile.BackPresetIds);
         }
         Assert.Null(mine.BackPresetIds); // the store gives it an empty one (below)
-        Assert.All(profiles, p => Assert.Equal(fronts[p.Id], p.PresetIds));
+        // Fronts stay, except that "Compress" joins a built-in front with room for it (schema 32).
+        Assert.All(profiles, p => Assert.Equal(fronts[p.Id], p.PresetIds.Where(id => id != "zip-all" || fronts[p.Id].Contains(id))));
         Assert.False(SettingsMigrations.ApplyToLibrary(29, presets, profiles)); // once only
         Assert.False(SettingsMigrations.ApplyToLibrary(AppSettings.CurrentSchemaVersion, presets, profiles));
     }
@@ -127,7 +129,7 @@ public class BackFaceTests
         var upgraded = NewStore(dir);
 
         Assert.Equal(AppSettings.CurrentSchemaVersion, upgraded.Settings.SchemaVersion);
-        Assert.Equal(["to-webp", "to-png"], Profile(upgraded, "images").PresetIds);
+        Assert.Equal(["to-webp", "to-png", "zip-all"], Profile(upgraded, "images").PresetIds); // "Compress" joins (schema 32)
         Assert.Equal(BuiltIn("images").BackPresetIds, Profile(upgraded, "images").BackPresetIds);
         Assert.Equal(BuiltIn("mixed").BackPresetIds, Profile(upgraded, "mixed").BackPresetIds);
         Assert.Equal([], Profile(upgraded, "mine").BackPresetIds);

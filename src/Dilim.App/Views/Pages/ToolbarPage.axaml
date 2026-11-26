@@ -342,13 +342,18 @@
             </ContentControl>
 
             <!-- Only a built-in profile has a default to go back to; the last mixed one can't be deleted. -->
-            <StackPanel x:Name="ProfileActions" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <StackPanel Spacing="8">
+            <!-- Share one pie: export the selected one, import one (its own presets come with it). -->
+            <WrapPanel HorizontalAlignment="Left">
               <Button Classes="ghost" Content="{DynamicResource toolbar.import_pie}" Click="OnImportPie" />
               <Button Classes="ghost" Content="{DynamicResource toolbar.export_pie}" Click="OnExportPie" />
+            </WrapPanel>
+            <StackPanel x:Name="ProfileActions" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
               <Button Content="{DynamicResource toolbar.reset_profile}" Command="{Binding ResetProfileCommand}"
                       IsVisible="{Binding CanReset}" />
               <Button Content="{DynamicResource toolbar.delete_profile}" Command="{Binding DeleteProfileCommand}"
                       IsVisible="{Binding CanDelete}" />
+            </StackPanel>
             </StackPanel>
           </StackPanel>
         </Border>
