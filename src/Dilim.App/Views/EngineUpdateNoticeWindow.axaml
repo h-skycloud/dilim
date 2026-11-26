@@ -13,7 +13,7 @@
         ShowInTaskbar="False"
         ShowActivated="False"
         CanResize="False">
-  <Border Classes="card" Margin="12" Padding="16,14">
+  <Border Classes="card notice" Margin="12" Padding="18,16">
     <DockPanel>
       <Border DockPanel.Dock="Left" Width="36" Height="36" CornerRadius="999" Margin="0,2,12,0" VerticalAlignment="Top"
               Background="{DynamicResource AccentSoftBrush}">
@@ -21,7 +21,7 @@
       </Border>
       <StackPanel Spacing="8">
         <DockPanel>
-          <Button DockPanel.Dock="Right" Classes="icon" Padding="4" VerticalAlignment="Top" Click="OnClose">
+          <Button DockPanel.Dock="Right" Classes="tool-close small" VerticalAlignment="Top" Click="OnClose">
             <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Close}" />
           </Button>
           <TextBlock FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" Text="{DynamicResource engines.update_notice_title}" />

@@ -42,6 +42,11 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
 
     /// <summary>A turn of the mouse wheel flips the donut.</summary>
     [ObservableProperty] private bool _flipWithWheel;
+    [ObservableProperty] private bool _showKeyNumbers;
+
+    /// <summary>The app under the pointer when the pie opened (a donut can be made for it); null when unknown.</summary>
+    public string? ForegroundApp { get; set; }
+    [ObservableProperty] private bool _directionalSelect;
 
     /// <summary>
     /// The window keeps room for the ring a group fans out. Dragging, the donut is placed before the files (and so
@@ -154,10 +159,10 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
         HitBackground = "Transparent";
         ApplyAppearance();
 
-        var profile = ProfileSelector.Select(store.Profiles, files);
+        var profile = ProfileSelector.Select(store.Profiles, files, ForegroundApp);
         var formats = ProfileSelector.DetectFormats(files);
         // Both faces follow the same rule: a slice that can't convert these files is greyed out and says why.
-        var tools = Mode == PieMode.Actions ? DilimTools.Actions.Select(DilimTools.Make).ToArray()
+        var tools = Mode == PieMode.Actions ? DilimTools.ActionsWith(store.Settings.CustomActions)
             : Mode == PieMode.Tools ? DilimTools.For(formats, files.Count) : [];
         _transient = tools.ToDictionary(p => p.Id);
         _front = BuildFace(Mode == PieMode.Convert ? profile?.PresetIds ?? [] : tools.Take(6).Select(p => p.Id), formats);
@@ -311,5 +316,7 @@ public sealed partial class RadialViewModel(UserDataStore store, ILocalizer loc,
         SliceOpacity = store.Settings.Donut.Opacity;
         FlipKey = store.Settings.Donut.EffectiveFlipKey(store.Settings.Triggers);
         FlipWithWheel = store.Settings.Donut.FlipWithWheel;
+        ShowKeyNumbers = store.Settings.Donut.ShowKeyNumbers;
+        DirectionalSelect = store.Settings.Donut.DirectionalSelect && IsClickMode;
     }
 }

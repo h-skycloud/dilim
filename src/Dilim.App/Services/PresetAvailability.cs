@@ -25,6 +25,8 @@ public sealed class PresetAvailability(ConverterCatalog catalog, ILocalizer loc,
         {
             if (preset.ToolId is { } tool)
             {
+                if (tool.StartsWith(CustomAction.ToolPrefix, StringComparison.Ordinal))
+                    return null;
                 if (DilimTools.Actions.Contains(tool))
                     return tool == "share" && !OperatingSystem.IsWindows() ? loc["tool.error.windows"] : null;
                 if (!DilimTools.For(formats, 1).Any(p => p.ToolId == tool)

@@ -52,7 +52,9 @@
                  CenterHint="{Binding FlipHint}"
                  CenterHintWheel="{Binding FlipHintWheel}"
                  FlipKey="{Binding FlipKey}"
-                 FlipWithWheel="{Binding FlipWithWheel}" />
+                 FlipWithWheel="{Binding FlipWithWheel}"
+                 ShowKeyNumbers="{Binding ShowKeyNumbers}"
+                 DirectionalSelect="{Binding DirectionalSelect}" />
     <!-- Centred on the donut and lifted just above the ring (DonutMenu.RingRadius 36, its stroke and plate). -->
     <Panel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
            RenderTransform="translate(0px, -70px)">

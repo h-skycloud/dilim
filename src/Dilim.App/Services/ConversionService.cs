@@ -57,6 +57,9 @@ public sealed class ConversionService
     /// </summary>
     public event EventHandler? FeedbackDue;
 
+    /// <summary>A conversion (not a watch folder's) saved these files; on the UI thread.</summary>
+    public event Action<IReadOnlyList<string>>? ResultsReady;
+
     /// <summary>Starts converting files with a preset.</summary>
     /// <param name="files">Source files.</param>
     /// <param name="preset">Preset to apply.</param>
@@ -216,6 +219,8 @@ public sealed class ConversionService
             if (!_byId.TryGetValue(job.Id, out var vm))
                 return;
             vm.Refresh();
+            if (entry.WatchRuleId is null && job.Outputs.ToArray() is { Length: > 0 } saved)
+                ResultsReady?.Invoke(saved);
             var keep = vm.HasErrors ? KeepErrors : KeepSuccess;
             DispatcherTimer.RunOnce(() => Remove(vm), keep);
             if (!vm.HasErrors && CountSuccess(job))

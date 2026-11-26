@@ -70,6 +70,18 @@ public sealed class DonutSettings
     /// <summary>A turn of the mouse wheel flips the open donut to its other face.</summary>
     public bool FlipWithWheel { get; set; } = true;
 
+    /// <summary>1–9 and 0 choose a slice; small numbers on the slices show which.</summary>
+    public bool ShowKeyNumbers { get; set; } = true;
+
+    /// <summary>Past the ring, the slice in the pointer's direction is chosen (click mode).</summary>
+    public bool DirectionalSelect { get; set; } = true;
+
+    /// <summary>Opened with a key shortcut: move to a slice while holding the keys and let go to choose it.</summary>
+    public bool Turbo { get; set; } = true;
+
+    /// <summary>Open the pie in the middle of the screen instead of at the pointer (touch screens, presenting).</summary>
+    public bool OpenAtScreenCenter { get; set; }
+
     /// <summary>
     /// Keys that never flip the donut: Esc closes it, Enter and Space convert or open a group, the arrows move between
     /// slices and Backspace folds a group's ring.
@@ -109,6 +121,9 @@ public sealed class DonutSettings
 public sealed class AppSettings
 {
     public int MaximumParallelConversions { get; set; } = 2;
+
+    /// <summary>Put what a conversion or a tool saved on the shelf, ready to drag or share.</summary>
+    public bool AddResultsToShelf { get; set; }
     /// <summary>Current schema version. Increase when the format changes and add a migration.</summary>
     public const int CurrentSchemaVersion = 31;
 
@@ -191,6 +206,9 @@ public sealed class AppSettings
 
     /// <summary>Process names (without .exe) in which gestures never trigger.</summary>
     public List<string> ExcludedProcesses { get; set; } = [];
+
+    /// <summary>The user's own slices on the file actions pie (open a web address, run a command, open with).</summary>
+    public List<Dilim.Core.Presets.CustomAction> CustomActions { get; set; } = [];
 
     /// <summary>Engine ids in preferred order (see <see cref="Conversion.ConverterCatalog.Priority"/>).</summary>
     public List<string> EnginePriority { get; set; } =

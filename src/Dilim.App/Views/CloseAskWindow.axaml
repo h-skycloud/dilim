@@ -2,6 +2,7 @@
      "Don't ask again" (Settings → General changes it later). -->
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:tools="using:Dilim.App.Views.Tools"
         x:Class="Dilim.App.Views.CloseAskWindow"
         Title="Dilim"
         Icon="avares://Dilim/Assets/Icons/dilim.ico"
@@ -10,18 +11,19 @@
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">
-  <StackPanel Margin="22" Spacing="14">
-    <StackPanel Spacing="4">
-      <TextBlock Classes="h2" Text="{DynamicResource close.title}" />
-      <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource close.text}" />
+  <tools:CardFrame Title="{DynamicResource close.title}" Scrolls="False">
+    <tools:CardFrame.Footer>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button MinWidth="88" HorizontalContentAlignment="Center" Content="{DynamicResource common.cancel}"
+                Click="OnCancel" IsCancel="True" />
+        <Button MinWidth="88" HorizontalContentAlignment="Center" Content="{DynamicResource close.quit}" Click="OnQuit" />
+        <Button Classes="accent" MinWidth="88" HorizontalContentAlignment="Center" Content="{DynamicResource close.tray}"
+                Click="OnTray" IsDefault="True" />
+      </StackPanel>
+    </tools:CardFrame.Footer>
+    <StackPanel Spacing="14">
+      <TextBlock Classes="muted" TextWrapping="Wrap" Text="{DynamicResource close.text}" />
+      <CheckBox x:Name="DontAsk" Content="{DynamicResource close.dont_ask}" />
     </StackPanel>
-    <CheckBox x:Name="DontAsk" Content="{DynamicResource close.dont_ask}" />
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-      <Button MinWidth="88" HorizontalContentAlignment="Center" Content="{DynamicResource common.cancel}"
-              Click="OnCancel" IsCancel="True" />
-      <Button MinWidth="88" HorizontalContentAlignment="Center" Content="{DynamicResource close.quit}" Click="OnQuit" />
-      <Button Classes="accent" MinWidth="88" HorizontalContentAlignment="Center" Content="{DynamicResource close.tray}"
-              Click="OnTray" IsDefault="True" />
-    </StackPanel>
-  </StackPanel>
+  </tools:CardFrame>
 </Window>

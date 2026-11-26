@@ -209,6 +209,19 @@ public sealed class UserDataStore
         Write(path, new PresetBundle { Presets = Presets, Profiles = Profiles }, DilimJsonContext.Default.PresetBundle);
 
     /// <summary>
+    /// Exports one donut (a ".dilim-pie.json"): the profile and the presets on its faces, with the conversions its
+    /// groups fan out. Imported with <see cref="Import"/> like any bundle.
+    /// </summary>
+    public void ExportProfile(ToolbarProfile profile, string path)
+    {
+        var ids = profile.PresetIds.Concat(profile.BackPresetIds ?? []).ToHashSet();
+        foreach (var group in Presets.Where(p => p.IsGroup && ids.Contains(p.Id)).ToArray())
+            ids.UnionWith(group.SubPresetIds);
+        Write(path, new PresetBundle { Presets = Presets.Where(p => ids.Contains(p.Id)).ToList(), Profiles = [profile] },
+            DilimJsonContext.Default.PresetBundle);
+    }
+
+    /// <summary>
     /// Imports presets and profiles from a bundle. Items with an existing id are replaced, new ones added.
     /// </summary>
     /// <returns>Number of imported presets + profiles.</returns>

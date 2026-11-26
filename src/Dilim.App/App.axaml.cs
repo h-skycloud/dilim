@@ -75,6 +75,7 @@ public partial class App : Application
         _ = AppHost.Get<ConverterCatalog>().CheckInBackgroundAsync();
 
         // Global gestures → donut toolbar
+        AppHost.Get<ConversionService>().ResultsReady += outputs => AppHost.Get<DilimService>().OfferResults(outputs);
         var triggers = AppHost.Get<TriggerService>();
         var radial = AppHost.Get<RadialController>();
         var platform = AppHost.Get<IPlatformServices>();
@@ -93,7 +94,7 @@ public partial class App : Application
                     ? await windowsSelection.GetFileManagerSelectionAsync()
                     : OperatingSystem.IsMacOS() ? await Task.Run(platform.GetFileManagerSelection) : platform.GetFileManagerSelection();
                 if (files.Count > 0 && !store.Settings.Paused)
-                    radial.ShowForFiles(e.X, e.Y, files, mode: e.Gesture?.Menu ?? PieMode.Convert);
+                    radial.ShowForFiles(e.X, e.Y, files, mode: e.Gesture?.Menu ?? PieMode.Convert, fromKeys: e.Gesture?.Kind == TriggerKind.KeyChord);
                 else if (files.Count == 0 && Throttle.TryEnter("empty-selection", out var held))
                     log.LogInformation("The selection shortcut found no selected files in {Window}{Elevation}{Held}",
                         platform.DescribeForegroundWindow() is { Length: > 0 } window ? window : "the foreground window",

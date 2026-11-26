@@ -25,6 +25,38 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
     /// <summary>The shelf's references, kept next to the settings so they survive a restart.</summary>
     public ShelfList Shelf => _shelfList ??= new ShelfList(store.Directory);
 
+    /// <summary>What a conversion or a tool saved goes on the shelf when the user wants that (Settings → General).</summary>
+    public void OfferResults(IReadOnlyList<string> outputs)
+    {
+        if (!store.Settings.AddResultsToShelf || outputs.Count == 0) return;
+        Shelf.Add(outputs.Where(o => File.Exists(o) || Directory.Exists(o)));
+    }
+
+    /// <summary>Runs one of the user's own slices on the files. A failure is said in a message, never thrown.</summary>
+    private void RunCustom(string id, IReadOnlyList<string> files)
+    {
+        var action = store.Settings.CustomActions.FirstOrDefault(a => a.ToolId == id);
+        if (action is null) return;
+        try
+        {
+            var start = action.Kind switch
+            {
+                CustomActionKind.OpenUrl => new ProcessStartInfo(CustomAction.Expand(action.Target, files, url: true)) { UseShellExecute = true },
+                CustomActionKind.OpenWith => new ProcessStartInfo(action.Target, CustomAction.Expand("{files}", files)) { UseShellExecute = true },
+                _ => new ProcessStartInfo(action.Target, CustomAction.Expand(action.Arguments, files))
+                {
+                    UseShellExecute = true,
+                    WorkingDirectory = Path.GetDirectoryName(files[0]) ?? "",
+                },
+            };
+            Process.Start(start);
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or FileNotFoundException)
+        {
+            _ = windows.MessageAsync(windows.Main is { IsVisible: true } main ? main : null, loc.Format("tool.custom.failed", action.Name, ex.Message));
+        }
+    }
+
     /// <summary>Shows the shelf, adding <paramref name="files"/> to it first.</summary>
     public void ShowShelf(IReadOnlyList<string>? files = null)
     {
@@ -81,6 +113,11 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
     public void Show(string id, IReadOnlyList<string> files)
     {
         if (files.Count == 0) return;
+        if (id.StartsWith(CustomAction.ToolPrefix, StringComparison.Ordinal))
+        {
+            RunCustom(id, files);
+            return;
+        }
         if (id == "cropImage")
         {
             windows.ShowCropOverlay(files, store.FindPreset("tool-crop")!.Clone());
@@ -254,6 +291,7 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
                 Sources = [.. files],
                 Outputs = [.. outputs],
             });
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => OfferResults(outputs));
             return outputs;
         }
         catch

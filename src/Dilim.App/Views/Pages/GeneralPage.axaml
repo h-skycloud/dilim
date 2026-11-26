@@ -86,6 +86,10 @@
       <StackPanel Spacing="12">
         <TextBlock Classes="h2" Text="{DynamicResource general.history}" />
         <ToggleSwitch Content="{DynamicResource general.no_history}" IsChecked="{Binding NoHistory}" />
+        <StackPanel Spacing="2">
+          <ToggleSwitch Content="{DynamicResource general.results_to_shelf}" IsChecked="{Binding AddResultsToShelf}" />
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource general.results_to_shelf_hint}" />
+        </StackPanel>
         <StackPanel IsVisible="{Binding !NoHistory}">
           <TextBlock Classes="label" Text="{DynamicResource general.history_limit}" />
           <NumericUpDown Value="{Binding HistoryLimit}" Minimum="50" Maximum="2000" Increment="50" FormatString="0"

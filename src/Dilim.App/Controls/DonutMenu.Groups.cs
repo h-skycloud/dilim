@@ -228,6 +228,8 @@ public sealed partial class DonutMenu
     {
         if (IsEditMode || _progressMode || Count == 0)
             return false;
+        if (HandleNumberKey(key))
+            return true;
         var step = key switch
         {
             Key.Right or Key.Down => 1,

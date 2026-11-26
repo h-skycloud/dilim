@@ -39,6 +39,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         _showMenuBarIcon = store.Settings.ShowMenuBarIcon;
         _contextMenu = store.Settings.ContextMenuEnabled;
         _noHistory = !store.Settings.KeepHistory;
+        _addResultsToShelf = store.Settings.AddResultsToShelf;
         _historyLimit = store.Settings.EffectiveHistoryLimit;
         _maximumParallelConversions = store.Settings.MaximumParallelConversions;
         OutputLocations = new[] { OutputLocation.SameFolder, OutputLocation.Subfolder, OutputLocation.CustomFolder }
@@ -246,6 +247,9 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
 
     // Conversion history (home page): don't record it, how much of it to keep, or clear what is there.
     [ObservableProperty] private bool _noHistory;
+    [ObservableProperty] private bool _addResultsToShelf;
+
+    partial void OnAddResultsToShelfChanged(bool value) => Save(s => s.AddResultsToShelf = value);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HistoryText))]

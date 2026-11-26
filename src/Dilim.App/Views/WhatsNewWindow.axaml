@@ -13,11 +13,11 @@
         Background="Transparent"
         TransparencyLevelHint="Transparent"
         WindowStartupLocation="CenterScreen">
-  <Border Classes="card" Margin="12" Padding="20,14,20,18">
+  <Border Classes="card notice" Margin="12" Padding="20,14,20,18">
     <StackPanel>
       <!-- Header: drag here to move the window -->
       <DockPanel x:Name="Header" Background="Transparent" Margin="0,0,0,12">
-        <Button x:Name="CloseButton" DockPanel.Dock="Right" Classes="icon" Padding="6" VerticalAlignment="Center"
+        <Button x:Name="CloseButton" DockPanel.Dock="Right" Classes="tool-close small" VerticalAlignment="Center"
                 Click="OnClose" ToolTip.Tip="{DynamicResource common.close}">
           <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Close}" />
         </Button>
