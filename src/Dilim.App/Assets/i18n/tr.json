@@ -949,7 +949,7 @@
   "tool.hint.trimVideo": "Başlangıç/bitişi saniye olarak gir. Çıktı bir MP4 kopyasıdır.",
   "tool.splitPDF": "PDF böl",
   "tool.hint.splitPDF": "Her sayfayı ayrı PDF olarak kaydet.",
-  "tool.organizePDF": "PDF düzenle",
+  "tool.organizePDF": "PDF sayfalarını düzenle",
   "tool.hint.organizePDF": "Sayfa sırasını seç; kopyadan silmek istediğin sayfaları listeye ekleme. Örnek: 3,1-2.",
   "tool.extractArchive": "Arşivi çıkar",
   "tool.hint.extractArchive": "Arşiv motoruyla yeni bir sonuç klasörüne çıkar.",
@@ -1163,5 +1163,17 @@
   "tool.pdfshrink.target_setting": "Seçilen ayar: görseller {0} dpi · kalite %{1}",
   "tool.pdfshrink.target_files": "Her dosya {0} MB altında kalan en iyi kalitede kaydedilir.",
   "tool.pdfshrink.target_miss": "En küçük seviyede bile yaklaşık {0}; hedefin altına inilemiyor.",
-  "tool.pdfshrink.try_flatten": "Daha da küçültmek için Düzleştir'i deneyin."
+  "tool.pdfshrink.try_flatten": "Daha da küçültmek için Düzleştir'i deneyin.",
+  "tool.organize.run": "Düzenlenmiş PDF'i kaydet",
+  "tool.organize.reset": "Sırayı sıfırla",
+  "tool.organize.count": "{0} sayfa",
+  "tool.organize.page": "Sayfa {0}",
+  "tool.organize.rotate": "Sağa döndür (R)",
+  "tool.organize.duplicate": "Çoğalt (Ctrl+D)",
+  "tool.organize.remove": "Kaldır (Delete)",
+  "tool.organize.same_width": "Tüm sayfalar aynı genişlikte",
+  "tool.organize.same_width_note": "Sayfalar en dar sayfanın genişliğine orantılı olarak ölçeklenir; yükseklikleri farklı kalabilir. Bu seçenekte bağlantılar ve form alanları korunmaz.",
+  "tool.organize.keys": "Sıralamak için sayfayı sürükleyin. Klavye: ←/→ seç, Alt+←/→ taşı, R döndür, Ctrl+D çoğalt, Delete kaldır. Birden çok PDF seçildiyse sayfaları tek dosyada birleşir.",
+  "tool.organize.empty": "Kaydedilecek sayfa kalmadı.",
+  "tool.organize.unreadable": "PDF okunamadı (parolalı ya da bozuk olabilir)."
 }

@@ -1163,5 +1163,17 @@
   "tool.pdfshrink.target_setting": "Picked: pictures {0} dpi · quality {1}%",
   "tool.pdfshrink.target_files": "Each file is saved at the best quality under {0} MB.",
   "tool.pdfshrink.target_miss": "Even the smallest level is about {0}; it can't get under the target.",
-  "tool.pdfshrink.try_flatten": "Try Flatten to shrink it further."
+  "tool.pdfshrink.try_flatten": "Try Flatten to shrink it further.",
+  "tool.organize.run": "Save Organized PDF",
+  "tool.organize.reset": "Reset Order",
+  "tool.organize.count": "{0} pages",
+  "tool.organize.page": "Page {0}",
+  "tool.organize.rotate": "Rotate right (R)",
+  "tool.organize.duplicate": "Duplicate (Ctrl+D)",
+  "tool.organize.remove": "Remove (Delete)",
+  "tool.organize.same_width": "Make all pages the same width",
+  "tool.organize.same_width_note": "Pages are scaled proportionally to match the narrowest page; their heights may still differ. Links and form fields are not kept with this option.",
+  "tool.organize.keys": "Drag a page to reorder. Keys: ←/→ select, Alt+←/→ move, R rotate, Ctrl+D duplicate, Delete remove. With several PDFs selected, their pages are combined into one file.",
+  "tool.organize.empty": "No pages left to save.",
+  "tool.organize.unreadable": "The PDF could not be read (it may be password-protected or damaged)."
 }

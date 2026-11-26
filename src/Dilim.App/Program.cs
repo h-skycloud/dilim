@@ -78,6 +78,21 @@ internal static class Program
             Log.LogInformation("{Startup}", startup);
             return RunInstallerCommand(instance);
         }
+        if (!instance.IsFirst && UpdateService.IsReleaseBuild && SingleInstance.ShouldReplace(SingleInstance.RunningVersion(TimeSpan.FromSeconds(1.5)), UpdateService.CurrentVersion))
+        {
+            // An older Dilim is running (from before an update, or another folder): it is asked to quit and this one
+            // takes its place. Otherwise the update seems to do nothing, as every launch goes to the old one.
+            Log.LogInformation("{Startup}", startup);
+            Log.LogInformation("An older Dilim ({Running}) is running: asking it to quit", SingleInstance.RunningVersion() ?? "0.4.0 or earlier");
+            if (instance.ForwardToFirst(["--quit"], QuitTimeout) && instance.WaitForFirstToExit(QuitTimeout))
+            {
+                instance.Dispose();
+                try { instance = SingleInstance.Acquire(); }
+                catch (UnauthorizedAccessException) { return 1; }
+                Instance = instance;
+            }
+            else Log.LogWarning("The older Dilim did not quit; handing it the arguments instead");
+        }
         if (!instance.IsFirst)
         {
             var result = instance.Forward(args, ForwardTimeout);
@@ -93,6 +108,7 @@ internal static class Program
         }
 
         Log.LogInformation("{Startup}", startup);
+        instance.NoteRunning(UpdateService.CurrentVersion);
         if (Elevation.ShellCannotReachDilim)
             Log.LogWarning("Dilim runs as administrator ({Elevation}) while Explorer doesn't: Explorer can't drop files on it, " +
                            "use its menu or have its selection read", Elevation);

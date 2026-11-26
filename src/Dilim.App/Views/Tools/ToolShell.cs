@@ -198,6 +198,20 @@ public abstract class ToolShell : Window
     private static bool IsWithinButton(object? source) =>
         source is Visual visual && visual.FindAncestorOfType<Button>() is not null;
 
+    /// <summary>
+    /// Where a tool saves what it made from <paramref name="source"/>: the "Dilim" folder next to it, under the same
+    /// name with <paramref name="extension"/>, numbered when the name is taken. The original is never overwritten.
+    /// </summary>
+    protected static string OutputNextTo(string source, string extension)
+    {
+        var folder = Path.Combine(Path.GetDirectoryName(source)!, "Dilim");
+        Directory.CreateDirectory(folder);
+        var stem = Path.GetFileNameWithoutExtension(source);
+        var path = Path.Combine(folder, stem + extension);
+        for (var n = 2; File.Exists(path); n++) path = Path.Combine(folder, $"{stem} ({n}){extension}");
+        return path;
+    }
+
     // ───────── Small builders the tools share ─────────
 
     /// <summary>A section label ("Document order").</summary>

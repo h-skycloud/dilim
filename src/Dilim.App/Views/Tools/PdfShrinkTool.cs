@@ -393,23 +393,12 @@ public sealed class PdfShrinkTool : ToolShell
                 new Progress<double>(p => progress.Report((i + p) / _files.Count)));
             // Never bigger than the original: then the original is saved as it is.
             if (bytes.LongLength >= new FileInfo(file).Length) bytes = await File.ReadAllBytesAsync(file, ct);
-            var output = OutputPath(file);
+            var output = OutputNextTo(file, ".pdf");
             await File.WriteAllBytesAsync(output, bytes, ct);
             outputs.Add(output);
             progress.Report((i + 1.0) / _files.Count);
         }
         return outputs;
-    }
-
-    /// <summary>Next to the original, in its "Dilim" folder, under the same name (numbered when taken).</summary>
-    private static string OutputPath(string file)
-    {
-        var folder = Path.Combine(Path.GetDirectoryName(file)!, "Dilim");
-        Directory.CreateDirectory(folder);
-        var stem = Path.GetFileNameWithoutExtension(file);
-        var path = Path.Combine(folder, stem + ".pdf");
-        for (var n = 2; File.Exists(path); n++) path = Path.Combine(folder, $"{stem} ({n}).pdf");
-        return path;
     }
 
     // ───────── Formatting ─────────

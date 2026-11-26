@@ -10,6 +10,25 @@ one-line summaries in the user's language (a line per change; a language without
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 0.5.0
+
+<!-- update
+level: recommended
+tr: PDF sayfalarını düzenle: sayfaları sürükleyerek sırala, döndür, çoğalt ya da kaldır
+tr: Birden çok PDF seçince sayfaları tek dosyada birleşir; istersen hepsi aynı genişlikte
+tr: Güncellemeden sonra yeni sürüm, arkada açık kalan eski Dilim'in yerini alır
+en: Organize PDF pages: drag to reorder, rotate, duplicate or remove pages
+en: Pages of several PDFs are combined into one file; optionally all the same width
+en: After an update the new version replaces an older Dilim still running in the background
+-->
+
+- **Organize PDF pages:** every page as a card to drag into a new order, rotate, duplicate or remove; "Reset Order"
+  brings the original back. Keyboard: ←/→ select, Alt+←/→ move, R rotate, Ctrl+D duplicate, Delete remove. With
+  several PDFs selected, their pages are combined into one file. "Make all pages the same width" scales pages to the
+  narrowest one.
+- **Updates take effect at once:** when an older Dilim is still running (started with Windows, or installed in another
+  folder), opening the new version asks it to quit and takes its place.
+
 ## 0.4.0
 
 <!-- update
