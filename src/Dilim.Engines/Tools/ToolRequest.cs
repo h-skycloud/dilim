@@ -34,6 +34,9 @@ public sealed record ToolRequest
     public string Color { get; init; } = "#FFFFFF";
     public string Pages { get; init; } = "1";
 
+    /// <summary>Times in seconds: frames to save (videoSnapshots), points to split at (splitVideo).</summary>
+    public double[] Times { get; init; } = [];
+
     public void Validate(string id)
     {
         if (id == "compress" && (ImageFormat is not ("webp" or "jpg" or "avif") || PdfDpi is < 36 or > 1200
@@ -43,9 +46,10 @@ public sealed record ToolRequest
         if (id is "trimVideo" or "trimAudio" or "redactAudio" or "redactVideo")
             if (!double.IsFinite(Start) || !double.IsFinite(End) || Start < 0 || End <= Start)
                 throw new ArgumentException("tool.error.time");
-        if (id == "splitVideo" && (!double.IsFinite(End) || End < 1))
+        if (id == "splitVideo" && Times.Length == 0 && (!double.IsFinite(End) || End < 1))
             throw new ArgumentException("tool.error.time");
         if (id == "videoSnapshots" && (!double.IsFinite(Start) || Start < 0)) throw new ArgumentException("tool.error.time");
+        if (Times.Any(t => !double.IsFinite(t) || t < 0)) throw new ArgumentException("tool.error.time");
         if (id == "changeVideoSpeed" && (!double.IsFinite(Speed) || Speed < .25 || Speed > 4))
             throw new ArgumentException("tool.error.speed");
         if (id is "cropVideo" or "redactVideo" or "redactImage" or "annotateImage")

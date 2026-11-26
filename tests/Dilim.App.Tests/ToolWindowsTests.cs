@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -305,5 +306,124 @@ public class ToolWindowsTests
         {
             if (dark) theme.Apply(new ThemeSettings(), language);
         }
+    }
+
+    private static string TestClip(string name, double seconds = 4)
+    {
+        Directory.CreateDirectory(Root);
+        var path = Path.Combine(Root, name);
+        var ffmpeg = ToolEngine.FfmpegPath ?? throw new InvalidOperationException("FFmpeg is needed for this test");
+        var made = Task.Run(() => ProcessRunner.RunAsync(ffmpeg, ["-v", "error", "-y", "-f", "lavfi", "-i", $"testsrc2=s=640x360:r=25:d={seconds}",
+            "-f", "lavfi", "-i", $"sine=frequency=330:duration={seconds}", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", path],
+            TimeSpan.FromSeconds(60), CancellationToken.None)).GetAwaiter().GetResult();
+        Assert.Equal(0, made.ExitCode);
+        return path;
+    }
+
+    private static void Wait(Func<bool> until, int tries = 400)
+    {
+        for (var i = 0; i < tries && !until(); i++) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(25); }
+        RenderTests.Pump();
+    }
+
+    private static void Press(Window window, string text) =>
+        window.GetVisualDescendants().OfType<Button>().First(b => b.Content as string == text || (b.Content as StackPanel)?.Children.OfType<TextBlock>().Any(t => t.Text == text) == true)
+            .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+
+    private static Button Primary(Window window, string text) =>
+        window.GetVisualDescendants().OfType<Button>().Single(b => b.Content as string == text && b.Classes.Contains("accent"));
+
+    [AvaloniaFact]
+    public void Video_tools_render_and_ask_the_engine_for_what_was_chosen()
+    {
+        TestServices.EnsureInitialized("tr");
+        var loc = AppHost.Get<ILocalizer>();
+        var clip = TestClip("Fener.mp4");
+        ToolRequest? asked = null;
+        string? askedId = null;
+        Task<IReadOnlyList<string>> Run(string id, IReadOnlyList<string> files, ToolRequest request, Window owner, IProgress<double> progress, CancellationToken ct)
+        {
+            (askedId, asked) = (id, request);
+            return Task.FromResult<IReadOnlyList<string>>([]);
+        }
+
+        // Speed: 2× from its stops.
+        var speed = new VideoSpeedTool([clip], loc, Run);
+        speed.Show();
+        var preview = speed.GetVisualDescendants().OfType<VideoPreview>().Single();
+        Wait(() => preview.Info is not null);
+        Wait(() => false, 40);
+        speed.GetVisualDescendants().OfType<Slider>().First(s => s.Classes.Contains("level")).Value = 4;
+        RenderTests.Save(speed, "tool-video-speed-tr.png");
+        Primary(speed, loc["tool.crop.apply"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Wait(() => asked is not null);
+        Assert.Equal(("changeVideoSpeed", 2.0), (askedId, asked!.Speed));
+        speed.Close();
+
+        // Frames: two added.
+        asked = null;
+        var frames = new VideoFramesTool([clip], loc, Run);
+        frames.Show();
+        preview = frames.GetVisualDescendants().OfType<VideoPreview>().Single();
+        Wait(() => preview.Info is not null);
+        Press(frames, loc["tool.frames.add"]); Wait(() => false, 20);
+        preview.Seek(1.6); Wait(() => false, 20);
+        Press(frames, loc["tool.frames.add"]); Wait(() => false, 40);
+        RenderTests.Save(frames, "tool-video-frames-tr.png");
+        Primary(frames, loc.Format("tool.frames.save", 2)).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Wait(() => asked is not null);
+        Assert.Equal(2, asked!.Times.Length);
+        frames.Close();
+
+        // Crop: 1:1 centred.
+        asked = null;
+        var crop = new CropVideoTool([clip], loc, Run);
+        crop.Show();
+        preview = crop.GetVisualDescendants().OfType<VideoPreview>().Single();
+        Wait(() => preview.Canvas.Boxes.Count > 0);
+        crop.GetVisualDescendants().OfType<Segmented>().Single().Selected = 1;
+        Wait(() => false, 40);
+        RenderTests.Save(crop, "tool-video-crop-tr.png");
+        Primary(crop, loc["tool.crop.apply"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Wait(() => asked is not null);
+        Assert.Equal((140, 0, 360, 360), (asked!.X, asked.Y, asked.Width, asked.Height));
+        crop.Close();
+
+        // Trim: typed times.
+        asked = null;
+        var trim = new TrimVideoTool([clip], loc, Run);
+        trim.Show();
+        preview = trim.GetVisualDescendants().OfType<VideoPreview>().Single();
+        Wait(() => preview.Info is not null);
+        var boxes = trim.GetVisualDescendants().OfType<TextBox>().ToList();
+        void Type(TextBox box, string text)
+        {
+            box.Focus(); box.Text = text;
+            trim.KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
+            Wait(() => false, 5);
+        }
+        Type(boxes[0], "0:00.50");
+        Type(boxes[1], "3");
+        Wait(() => trim.GetVisualDescendants().OfType<Filmstrip>().Single().GetType() is not null, 60);
+        RenderTests.Save(trim, "tool-video-trim-tr.png");
+        Primary(trim, loc["tool.crop.apply"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Wait(() => asked is not null);
+        Assert.Equal((0.5, 3.0), (asked!.Start, asked.End));
+        trim.Close();
+
+        // Split: three equal parts.
+        asked = null;
+        var split = new SplitVideoTool([clip], loc, Run);
+        split.Show();
+        preview = split.GetVisualDescendants().OfType<VideoPreview>().Single();
+        Wait(() => preview.Info is not null);
+        split.GetVisualDescendants().OfType<NumericUpDown>().Single().Value = 3;
+        Press(split, loc["tool.split.set"]);
+        Wait(() => false, 60);
+        RenderTests.Save(split, "tool-video-split-tr.png");
+        Primary(split, loc["tool.split.run"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Wait(() => asked is not null);
+        Assert.Equal(2, asked!.Times.Length);
+        split.Close();
     }
 }

@@ -92,6 +92,12 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
             shrink.Activate();
             return;
         }
+        if (NewToolWindow(id, files) is { } toolWindow)
+        {
+            toolWindow.Show();
+            toolWindow.Activate();
+            return;
+        }
         if (id == "organizePDF")
         {
             var organize = new Views.Tools.PdfOrganizeTool(files.Where(f => Path.GetExtension(f).Equals(".pdf", StringComparison.OrdinalIgnoreCase)).ToArray() is { Length: > 0 } pdfs ? pdfs : files, loc);
@@ -110,6 +116,17 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
         tool.Show();
         tool.Activate();
     }
+
+    /// <summary>The redesigned window of a tool, or null for the ones still using the form.</summary>
+    private Window? NewToolWindow(string id, IReadOnlyList<string> files) => id switch
+    {
+        "changeVideoSpeed" => new Views.Tools.VideoSpeedTool(files, loc, RunAsync),
+        "videoSnapshots" => new Views.Tools.VideoFramesTool(files, loc, RunAsync),
+        "cropVideo" => new Views.Tools.CropVideoTool(files, loc, RunAsync),
+        "trimVideo" => new Views.Tools.TrimVideoTool(files, loc, RunAsync),
+        "splitVideo" => new Views.Tools.SplitVideoTool(files, loc, RunAsync),
+        _ => null,
+    };
 
     public JobViewModel? StartConversion(string id, IReadOnlyList<string> files, ToolRequest? request = null)
     {

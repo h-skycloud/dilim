@@ -85,6 +85,19 @@ public static class ToolEngine
             {
                 var extension = format.Category == FormatCategory.Audio && id != "audioToVideo" ? ".m4a" : ".mp4";
                 var stem = $"{i + 1}-{Path.GetFileNameWithoutExtension(file)}";
+                if (id == "videoSnapshots" && request.Times.Length > 0)
+                {
+                    // Each chosen frame, full size, named by its time.
+                    foreach (var time in request.Times.Distinct().Order())
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        var frame = Path.Combine(outputDirectory, $"{Path.GetFileNameWithoutExtension(file)} {Timecode(time)}.png");
+                        await MediaAsync(id, [file], request with { Start = time }, frame, null, ct);
+                        outputs.Add(frame);
+                    }
+                    progress?.Report((i + 1d) / files.Count);
+                    continue;
+                }
                 var output = Path.Combine(outputDirectory, stem + (id == "videoSnapshots" ? ".png" : extension));
                 if (id == "splitVideo") output = Path.Combine(outputDirectory, stem + "-%03d.mp4");
                 await MediaAsync(id, [file], request, output, progress, ct);
@@ -194,7 +207,7 @@ public static class ToolEngine
             case "normalizeAudio": af = "loudnorm=I=-16:TP=-1.5:LRA=11"; break;
             case "muteVideo": args.Add("-an"); break;
             case "trimVideo": case "trimAudio": args.AddRange(["-ss", N(r.Start), "-t", N(r.End - r.Start)]); break;
-            case "cropVideo": vf = $"crop={r.Width}:{r.Height}:{r.X}:{r.Y}"; break;
+            case "cropVideo": vf = $"crop={r.Width / 2 * 2}:{r.Height / 2 * 2}:{r.X}:{r.Y}"; break;
             case "changeVideoSpeed":
                 vf = $"setpts=(PTS-STARTPTS)/{N(r.Speed)}";
                 if (audio)
@@ -208,6 +221,12 @@ public static class ToolEngine
                 }
                 break;
             case "videoSnapshots": args.AddRange(["-ss", N(r.Start), "-frames:v", "1"]); break;
+            case "splitVideo" when r.Times.Length > 0:
+                // Cut exactly at the chosen points: a key frame is forced at each.
+                var points = string.Join(',', r.Times.Where(t => t > 0.05 && (info.Duration <= 0 || t < info.Duration - 0.05)).Distinct().Order().Select(N));
+                if (points.Length == 0) throw new ArgumentException("tool.error.time");
+                args.AddRange(["-force_key_frames", points, "-f", "segment", "-segment_times", points, "-reset_timestamps", "1"]);
+                break;
             case "splitVideo": args.AddRange(["-force_key_frames", $"expr:gte(t,n_forced*{N(r.End)})", "-f", "segment", "-segment_time", N(r.End), "-reset_timestamps", "1"]); break;
             case "audioChannels": args.AddRange(["-ac", r.Channels.ToString(CultureInfo.InvariantCulture)]); break;
             case "redactVideo": vf = $"drawbox=x={r.X}:y={r.Y}:w={r.Width}:h={r.Height}:color=black:t=fill:enable='between(t,{N(r.Start)},{N(r.End)})'"; break;
@@ -246,7 +265,9 @@ public static class ToolEngine
             foreach (var file in files.Skip(1)) total += (await ProbeAsync(tools.Ffprobe, file, ct)).Duration;
         if (vf is not null) args.AddRange(["-vf", vf]);
         if (af is not null) args.AddRange(["-af", af]);
-        if (Path.GetExtension(output) == ".mp4") args.AddRange(["-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p", "-c:a", "aac"]);
+        // Cropping the picture keeps the sound exactly as it was (copied, not encoded again) when MP4 can hold it.
+        var copyAudio = id == "cropVideo" && audio && await AudioFitsMp4Async(tools.Ffprobe, files[0], ct);
+        if (Path.GetExtension(output) == ".mp4") args.AddRange(["-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p", "-c:a", copyAudio ? "copy" : "aac"]);
         else if (Path.GetExtension(output) == ".m4a") args.AddRange(["-vn", "-c:a", "aac"]);
         args.Add(output);
         try
@@ -261,6 +282,19 @@ public static class ToolEngine
             if (File.Exists(output)) File.Delete(output);
             throw;
         }
+    }
+
+    private static async Task<bool> AudioFitsMp4Async(string probe, string file, CancellationToken ct)
+    {
+        var result = await ProcessRunner.RunAsync(probe, ["-v", "error", "-select_streams", "a:0", "-show_entries", "stream=codec_name", "-of", "csv=p=0", file], TimeSpan.FromSeconds(20), ct);
+        return result.ExitCode == 0 && result.StandardOutput.Trim() is "aac" or "mp3" or "ac3" or "eac3" or "alac" or "opus" or "flac";
+    }
+
+    /// <summary>"0-01.60" style time for file names (no colons, which Windows refuses).</summary>
+    public static string Timecode(double seconds)
+    {
+        var t = TimeSpan.FromSeconds(Math.Max(0, seconds));
+        return $"{(int)t.TotalMinutes}-{t.Seconds:00}.{t.Milliseconds / 10:00}";
     }
 
     /// <summary>Duration, streams, size and frame rate of a media file, from ffprobe.</summary>

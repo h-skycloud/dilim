@@ -52,6 +52,41 @@ public static class ToolPreviews
             }
         }, file, ct);
 
+    /// <summary>
+    /// <paramref name="count"/> frames spread evenly over the video, <paramref name="width"/> pixels wide, in one pass:
+    /// the film strip of the trim and split tools, and the frames a silent preview plays.
+    /// </summary>
+    public static async Task<IReadOnlyList<byte[]>> FramesAsync(string file, double duration, int count, int width, CancellationToken ct = default)
+    {
+        if (duration <= 0 || count <= 0) return [];
+        try
+        {
+            var stamp = File.GetLastWriteTimeUtc(file).Ticks + "|" + new FileInfo(file).Length;
+            var key = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes($"frames|{file}|{count}|{width}|{stamp}")))[..24];
+            var folder = Path.Combine(CacheFolder, key);
+            if (!Directory.Exists(folder) || Directory.GetFiles(folder, "*.jpg").Length == 0)
+            {
+                var tools = FfmpegConverter.Locate() ?? throw new InvalidOperationException("tool.error.ffmpeg");
+                var work = folder + ".part";
+                if (Directory.Exists(work)) Directory.Delete(work, true);
+                Directory.CreateDirectory(work);
+                var rate = (count / duration).ToString("0.######", CultureInfo.InvariantCulture);
+                var result = await ProcessRunner.RunAsync(tools.Ffmpeg, ["-hide_banner", "-loglevel", "error", "-nostdin", "-y", "-i", file,
+                    "-vf", $"fps={rate},scale={width}:-2", "-frames:v", count.ToString(CultureInfo.InvariantCulture), "-q:v", "4",
+                    Path.Combine(work, "%04d.jpg")], TimeSpan.FromMinutes(5), ct);
+                if (result.ExitCode != 0) return [];
+                if (Directory.Exists(folder)) Directory.Delete(folder, true);
+                Directory.Move(work, folder);
+            }
+            var frames = new List<byte[]>();
+            foreach (var path in Directory.GetFiles(folder, "*.jpg").Order(StringComparer.Ordinal))
+                frames.Add(await File.ReadAllBytesAsync(path, ct));
+            return frames;
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception) { return []; }
+    }
+
     private static async Task<byte[]?> CachedAsync(string key, Func<string, Task> render, string source, CancellationToken ct)
     {
         try

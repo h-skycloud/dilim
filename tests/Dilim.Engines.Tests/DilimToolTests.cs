@@ -142,6 +142,51 @@ public sealed class DilimToolTests : IDisposable
         Assert.InRange(probe.Duration, 1.8, 2.3);
     }
 
+    private async Task<string> ClipAsync(string name, double seconds = 3)
+    {
+        var tools = FfmpegConverter.Locate();
+        Assert.True(tools is not null, "Fetch FFmpeg with build/fetch-engines.ps1 -Only ffmpeg before running Dilim media tests.");
+        var path = Path.Combine(_root, name);
+        var made = await ProcessRunner.RunAsync(tools.Value.Ffmpeg, ["-v", "error", "-y", "-f", "lavfi", "-i", $"testsrc=s=320x240:r=25:d={seconds}",
+            "-f", "lavfi", "-i", $"sine=frequency=440:duration={seconds}", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", path],
+            TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+        Assert.Equal(0, made.ExitCode);
+        return path;
+    }
+
+    [Fact]
+    public async Task Several_chosen_frames_are_saved_full_size()
+    {
+        var clip = await ClipAsync("frames.mp4");
+        var result = await ToolEngine.RunAsync("videoSnapshots", [clip], new ToolRequest { Times = [0.4, 1.2, 2.0] }, Output(), null, TestContext.Current.CancellationToken);
+        Assert.Equal(3, result.Count);
+        Assert.All(result, f => { using var image = new MagickImage(f); Assert.Equal(320u, image.Width); });
+    }
+
+    [Fact]
+    public async Task A_video_is_split_at_the_chosen_points()
+    {
+        var clip = await ClipAsync("split.mp4", 4);
+        var ct = TestContext.Current.CancellationToken;
+        var parts = await ToolEngine.RunAsync("splitVideo", [clip], new ToolRequest { Times = [1, 2.5] }, Output(), null, ct);
+        Assert.Equal(3, parts.Count);
+        var durations = new List<double>();
+        foreach (var part in parts.Order()) durations.Add((await ToolEngine.ProbeAsync(part, ct)).Duration);
+        Assert.InRange(durations[0], 0.9, 1.15);
+        Assert.InRange(durations[1], 1.4, 1.65);
+    }
+
+    [Fact]
+    public async Task Cropping_a_video_keeps_its_sound_as_it_is()
+    {
+        var clip = await ClipAsync("crop.mp4");
+        var ct = TestContext.Current.CancellationToken;
+        var output = Assert.Single(await ToolEngine.RunAsync("cropVideo", [clip], new ToolRequest { X = 10, Y = 10, Width = 201, Height = 121 }, Output(), null, ct));
+        var probe = await ToolEngine.ProbeAsync(output, ct);
+        Assert.Equal((200, 120), (probe.Width, probe.Height)); // even, as H.264 needs
+        Assert.True(probe.Audio);
+    }
+
     [Fact]
     public async Task Previews_show_a_video_frame_and_a_pdf_page()
     {
