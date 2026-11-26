@@ -246,4 +246,64 @@ public class ToolWindowsTests
             if (dark) theme.Apply(new ThemeSettings(), language);
         }
     }
+
+    /// <summary>A photo-like picture (as from a phone camera), w × h.</summary>
+    private static string Photo(string name, int w = 1600, int h = 1066)
+    {
+        Directory.CreateDirectory(Root);
+        var path = Path.Combine(Root, name);
+        using var image = new ImageMagick.MagickImage("plasma:skyblue-seagreen", (uint)w, (uint)h);
+        new ImageMagick.Drawing.Drawables().FillColor(new ImageMagick.MagickColor("#E8873A")).Circle(w * 0.62, h * 0.45, w * 0.62, h * 0.45 + h * 0.18)
+            .FillColor(new ImageMagick.MagickColor("#2F4F2F")).Rectangle(0, h * 0.8, w, h).Draw(image);
+        image.Quality = 90;
+        image.Write(path);
+        return path;
+    }
+
+    [AvaloniaTheory]
+    [InlineData("tr", false)]
+    [InlineData("tr", true)]
+    [InlineData("en", false)]
+    public void Crop_image_keeps_a_ratio_and_saves_the_box(string language, bool dark)
+    {
+        TestServices.EnsureInitialized(language);
+        var theme = AppHost.Get<ThemeService>();
+        try
+        {
+            if (dark) theme.Apply(new ThemeSettings { Mode = ThemeMode.Dark, CornerRadius = 16 }, language);
+            var file = Photo($"Deniz feneri {language}{dark}.jpg");
+            var preset = AppHost.Get<UserDataStore>().FindPreset("tool-crop")!.Clone();
+            var window = new CropImageTool([file], preset, AppHost.Get<ILocalizer>());
+            window.Show();
+            var canvas = window.GetVisualDescendants().OfType<BoxCanvas>().Single();
+            for (var i = 0; i < 200 && canvas.Boxes.Count == 0; i++) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(20); }
+            Assert.Equal(new Avalonia.PixelSize(1600, 1066), canvas.SourceSize);
+            // 1:1 — the largest centred square.
+            window.GetVisualDescendants().OfType<Segmented>().Single().Selected = 1;
+            Settle();
+            Assert.Equal(new Avalonia.Rect(267, 0, 1066, 1066), canvas.Boxes[0].Area);
+            RenderTests.Save(window, $"tool-crop-image-{language}{(dark ? "-dark" : "")}.png");
+
+            if (language == "tr" && !dark)
+            {
+                var primary = window.GetVisualDescendants().OfType<Button>().Single(b => b.Content as string == AppHost.Get<ILocalizer>()["tool.crop.apply"]);
+                primary.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                string? saved = null;
+                for (var i = 0; i < 300 && saved is null; i++)
+                {
+                    Dispatcher.UIThread.RunJobs(); Thread.Sleep(20);
+                    saved = Directory.EnumerateFiles(Root, "Deniz feneri trFalse*", SearchOption.AllDirectories).FirstOrDefault(f => f != file);
+                }
+                Assert.NotNull(saved);
+                for (var i = 0; i < 50; i++) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(20); }
+                using var result = new ImageMagick.MagickImage(saved);
+                Assert.Equal((1066u, 1066u), (result.Width, result.Height));
+            }
+            window.Close();
+        }
+        finally
+        {
+            if (dark) theme.Apply(new ThemeSettings(), language);
+        }
+    }
 }

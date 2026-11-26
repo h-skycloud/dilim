@@ -1175,5 +1175,10 @@
   "tool.organize.same_width_note": "Pages are scaled proportionally to match the narrowest page; their heights may still differ. Links and form fields are not kept with this option.",
   "tool.organize.keys": "Drag a page to reorder. Keys: ←/→ select, Alt+←/→ move, R rotate, Ctrl+D duplicate, Delete remove. With several PDFs selected, their pages are combined into one file.",
   "tool.organize.empty": "No pages left to save.",
-  "tool.organize.unreadable": "The PDF could not be read (it may be password-protected or damaged)."
+  "tool.organize.unreadable": "The PDF could not be read (it may be password-protected or damaged).",
+  "tool.crop.free": "Free",
+  "tool.crop.ratio": "Aspect ratio",
+  "tool.crop.size": "Size",
+  "tool.crop.apply": "Apply",
+  "tool.crop.which": "{0} / {1} · {2}"
 }
