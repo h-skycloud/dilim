@@ -125,6 +125,9 @@ public abstract class ToolShell : Window
     /// <summary>A short note in the footer (what will happen, or why the main action is off).</summary>
     protected string Status { get => _status.Text ?? ""; set => _status.Text = value; }
 
+    /// <summary>What the footer says when the tool finished without saving a file ("Copied to the clipboard").</summary>
+    protected string? DoneText { get; set; }
+
     /// <summary>Does the tool's work. Returns the files it saved.</summary>
     protected abstract Task<IReadOnlyList<string>> RunAsync(IProgress<double> progress, CancellationToken ct);
 
@@ -156,7 +159,7 @@ public abstract class ToolShell : Window
             _outputs = await RunAsync(new Progress<double>(p => { _bar.IsIndeterminate = false; _bar.Value = p; }), _running.Token);
             _status.Text = _outputs.Count switch
             {
-                0 => Loc["tool.done"],
+                0 => DoneText ?? Loc["tool.done"],
                 1 => Loc.Format("tool.shell.saved_one", Path.GetFileName(_outputs[0])),
                 _ => Loc.Format("tool.shell.saved_many", _outputs.Count),
             };

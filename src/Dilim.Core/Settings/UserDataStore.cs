@@ -715,7 +715,30 @@ internal static class SettingsMigrations
         //      back. One the user emptied is saved empty and stays so.
         if (from < 30 || profiles.Any(p => p.BackPresetIds is null))
             changed |= AddBackFaces(presets, profiles);
+        // v31: "Compress PDF" opens the PDF size reducer and is the PDF donut's first slice. When the front is full,
+        //      "HWP" (or else the last slice) moves to the back face in its place; a donut without it is left alone.
+        if (from < 31)
+            changed |= PromotePdfCompression(presets, profiles);
         return changed;
+    }
+
+    private static bool PromotePdfCompression(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        if (presets.All(p => p.Id != "compress-pdf") || profiles.FirstOrDefault(p => p.Id == "pdf") is not { } pdf
+            || pdf.PresetIds.Contains("compress-pdf"))
+            return false;
+        var back = pdf.BackPresetIds ??= [];
+        var slot = back.IndexOf("compress-pdf");
+        back.Remove("compress-pdf");
+        if (pdf.PresetIds.Count >= ToolbarProfile.MaxSlices)
+        {
+            var moved = pdf.PresetIds.Contains("to-hwp") ? "to-hwp" : pdf.PresetIds[^1];
+            pdf.PresetIds.Remove(moved);
+            if (!back.Contains(moved) && back.Count < ToolbarProfile.MaxSlices)
+                back.Insert(slot < 0 ? 0 : slot, moved);
+        }
+        pdf.PresetIds.Insert(0, "compress-pdf");
+        return true;
     }
 
     /// <summary>

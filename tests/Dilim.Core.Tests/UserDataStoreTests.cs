@@ -494,7 +494,7 @@ public class UserDataStoreTests
         Assert.DoesNotContain("mp3", profiles.Single(p => p.Id == "audio").Extensions);
         Assert.Contains("flac", profiles.Single(p => p.Id == "audio").Extensions);
         Assert.Contains(presets, p => p.Id == "to-mp4");
-        Assert.Equal(["to-png", "to-jpg", "to-docx"], profiles.Single(p => p.Id == "pdf").PresetIds.Take(3));
+        Assert.Equal(["compress-pdf", "to-png", "to-jpg", "to-docx"], profiles.Single(p => p.Id == "pdf").PresetIds.Take(4)); // schema 31: compress first
         Assert.Contains("zip-all", profiles.Single(p => p.Id == "mixed").PresetIds);
         // Every extension belongs to one donut only.
         var all = profiles.SelectMany(p => p.Extensions).ToList();
@@ -1218,7 +1218,7 @@ public class UserDataStoreTests
     }
 
     [Fact]
-    public void Version_17_libraries_get_compress_pdf_after_split_pdf_on_no_donut()
+    public void Version_17_libraries_get_compress_pdf_after_split_pdf_and_first_on_the_pdf_donut()
     {
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id == "compress-pdf");
@@ -1229,7 +1229,7 @@ public class UserDataStoreTests
         var compress = presets.Single(p => p.Id == "compress-pdf");
         Assert.Equal(("pdf", PdfCompression.Ebook, false), (compress.TargetFormat, compress.Pdf.Compression, compress.Pdf.CompressWithGhostscript));
         Assert.Equal("pdf-split", presets[presets.IndexOf(compress) - 1].Id); // where a new library has it
-        Assert.DoesNotContain(profiles, p => p.PresetIds.Contains("compress-pdf"));
+        Assert.Equal("compress-pdf", profiles.Single(p => p.Id == "pdf").PresetIds[0]); // schema 31
         Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "pdf").PresetIds, profiles.Single(p => p.Id == "pdf").PresetIds);
         Assert.False(SettingsMigrations.ApplyToLibrary(17, presets, profiles)); // once only
     }
@@ -1448,5 +1448,21 @@ public class UserDataStoreTests
 
         Assert.NotNull(target.FindPreset("shared"));
         Assert.Single(target.Profiles, p => p.IsFallback);
+    }
+
+    [Fact]
+    public void Version_30_libraries_get_compress_pdf_as_the_first_pdf_slice()
+    {
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var pdf = profiles.Single(p => p.Id == "pdf");
+        pdf.PresetIds = [.. BuiltInData.PdfDonutBefore31];
+        pdf.BackPresetIds = ["compress-pdf", "to-webp", "to-tiff"];
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(30, presets, profiles));
+
+        Assert.Equal(BuiltInData.PdfDonut, pdf.PresetIds);
+        Assert.Equal(["to-hwp", "to-webp", "to-tiff"], pdf.BackPresetIds);
+        Assert.False(SettingsMigrations.ApplyToLibrary(30, presets, profiles)); // once only
     }
 }
