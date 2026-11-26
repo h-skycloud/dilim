@@ -8,7 +8,7 @@ A local, open-source Windows file converter with a radial menu.
 
 ## Use
 
-Install `Dilim-0.3.1-win-Setup.exe`, or extract the portable ZIP and run `Dilim Başlat.vbs`. No separate .NET installation is required. Select a file in Explorer and press **Ctrl + Alt + Space**. **Ctrl + Alt + T** opens tools; **Ctrl + Alt + A** opens file actions. Tab flips the pie; Escape closes it.
+Install `Dilim-0.4.0-win-Setup.exe`, or extract the portable ZIP and run `Dilim Başlat.vbs`. No separate .NET installation is required. Select a file in Explorer and press **Ctrl + Alt + Space**. **Ctrl + Alt + T** opens tools; **Ctrl + Alt + A** opens file actions. Tab flips the pie; Escape closes it.
 
 Choose FFmpeg and 7-Zip on first run for video/audio and archive operations. Engines are downloaded from pinned, checksum-verified original releases. After installation conversions work offline. Files are processed locally; media is not uploaded. The app has no personal-website shortcut.
 

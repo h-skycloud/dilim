@@ -2,7 +2,7 @@
 
 ## 1. Temiz kurulum
 
-`Dilim-0.3.1-win-Setup.exe` dosyasını çalıştır. Kullanıcı hesabına kurulur; ayrı .NET kurulumu gerekmez. Başlat menüsündeki **Dilim** ile aç.
+`Dilim-0.4.0-win-Setup.exe` dosyasını çalıştır. Kullanıcı hesabına kurulur; ayrı .NET kurulumu gerekmez. Başlat menüsündeki **Dilim** ile aç.
 
 Video/ses için **FFmpeg**, arşiv için **7-Zip** motorunu kur. İndirme bir kez yapılır; sonra çevrimdışı kullanabilirsin.
 
