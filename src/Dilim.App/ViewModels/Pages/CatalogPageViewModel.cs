@@ -181,7 +181,7 @@ public sealed partial class CatalogPageViewModel : ObservableObject, IDisposable
         Back = Entries(profile?.BackPresetIds ?? [], formats);
         if (SelectedMode?.Value is PieMode.Tools or PieMode.Actions)
         {
-            var presets = SelectedMode.Value == PieMode.Actions ? DilimTools.Actions.Select(DilimTools.Make).ToArray()
+            var presets = SelectedMode.Value == PieMode.Actions ? DilimTools.ActionsWith(_store.Settings.CustomActions)
                 : DilimTools.For(formats, HasFiles ? Files.Count : 1);
             Front = EntriesOf(presets.Take(6), formats);
             Back = EntriesOf(presets.Skip(6), formats);

@@ -92,6 +92,7 @@ public sealed class RadialController(
         _dropped = false;
         _dragReachedDonut = false;
         _converted = false;
+        viewModel.ForegroundApp = AppAt(x, y);
         viewModel.ResetForDrag(mode);
         window.DonutControl.AllowContextEdit = false;
         PlaceAndShow(window, x, y, activate: false);
@@ -111,7 +112,8 @@ public sealed class RadialController(
     /// donut may lose focus once while Dilim becomes the active app. <paramref name="web"/>: the files are placeholders
     /// of this browser drop (the drop zone), which the donut now owns.
     /// </summary>
-    public void ShowForFiles(int x, int y, IReadOnlyList<string> files, bool forAnotherProcess = false, WebDrop? web = null, PieMode mode = PieMode.Convert)
+    public void ShowForFiles(int x, int y, IReadOnlyList<string> files, bool forAnotherProcess = false, WebDrop? web = null, PieMode mode = PieMode.Convert,
+        bool fromKeys = false)
     {
         if (web is null)
             files = platform.ResolveShortcuts(files);
@@ -129,9 +131,11 @@ public sealed class RadialController(
         var window = EnsureWindow();
         _dropped = false;
         _converted = false;
+        viewModel.ForegroundApp = web is null ? AppAt(x, y) : null;
         viewModel.Load(files, clickMode: true, mode: mode);
         viewModel.FitToThisDonut();
         window.DonutControl.AllowContextEdit = true;
+        window.TurboArmed = fromKeys && store.Settings.Donut.Turbo;
         PlaceAndShow(window, x, y, activate: true);
         WatchFlipKey();
         window.DonutControl.PlayOpenAnimation();
@@ -160,6 +164,18 @@ public sealed class RadialController(
             if (_visible && !_dropped && !viewModel.IsClickMode)
                 Close(animate: true);
         }, TimeSpan.FromMilliseconds(250));
+    }
+
+    /// <summary>The app whose window is at the point (not Dilim's own), for donuts made for an app.</summary>
+    private string? AppAt(int x, int y)
+    {
+        if (!store.Profiles.Any(p => p.Apps.Count > 0)) return null;
+        try
+        {
+            var name = platform.ProcessNameAt(x, y);
+            return name is null || name.Equals("Dilim", StringComparison.OrdinalIgnoreCase) ? null : name;
+        }
+        catch (Exception) { return null; }
     }
 
     public void Close(bool animate = true)
@@ -371,7 +387,7 @@ public sealed class RadialController(
     /// archive"; any other preset converts the files beside them (issue #186).
     /// </summary>
     internal static IReadOnlyList<string> SourcesFor(Preset preset, IReadOnlyList<string> files) =>
-        preset.PacksIntoOneArchive || preset.ToolId is { } id && DilimTools.Actions.Contains(id) ? files : [.. files.Where(path => !Directory.Exists(path))];
+        preset.PacksIntoOneArchive || preset.ToolId is { } id && (DilimTools.Actions.Contains(id) || id.StartsWith(CustomAction.ToolPrefix, StringComparison.Ordinal)) ? files : [.. files.Where(path => !Directory.Exists(path))];
 
     // ───────── Progress ring ─────────
 
@@ -510,6 +526,9 @@ public sealed class RadialController(
         // Window size follows the donut size (SizeToContent); compute it up front to centre on the cursor.
         var side = DonutMenu.SideFor(viewModel.OuterRadius, viewModel.ReserveSubRing);
         var sidePx = (int)Math.Ceiling(side * scaling);
+        // Click mode can open in the middle of the screen (touch screens, presenting); a drag stays at the pointer.
+        if (activate && store.Settings.Donut.OpenAtScreenCenter && screen?.WorkingArea is { } area)
+            cursor = area.Center;
         var position = WindowPosition(cursor, screen?.WorkingArea, sidePx);
 
         Motion.Refresh();

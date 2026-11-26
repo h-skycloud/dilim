@@ -82,10 +82,14 @@ public sealed partial class ExtensionTagsViewModel : ObservableObject
 
     /// <summary>The first other normal profile (selection order) that also has <paramref name="extension"/>.</summary>
     private ToolbarProfile? OwnerOf(string extension) =>
-        _profiles.FirstOrDefault(p => !p.IsFallback && !ReferenceEquals(p, _profile) && p.Matches(extension));
+        _profiles.FirstOrDefault(p => !p.IsFallback && !ReferenceEquals(p, _profile) && p.Matches(extension) && SameApps(p));
+
+    /// <summary>Donuts for different apps don't compete for an extension; donuts for any app or the same app do.</summary>
+    private bool SameApps(ToolbarProfile other) =>
+        other.Apps.Count == 0 && _profile.Apps.Count == 0 || other.Apps.Intersect(_profile.Apps, StringComparer.OrdinalIgnoreCase).Any();
 
     /// <summary>Rebuilds the chips and the remarks from the profile.</summary>
-    private void Refresh()
+    public void Refresh()
     {
         var myIndex = IndexOf(_profile);
         var chips = new List<TagChip>();

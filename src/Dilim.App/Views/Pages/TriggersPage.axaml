@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Dilim.App.ViewModels.Pages"
              xmlns:c="using:Dilim.App.Controls"
+             xmlns:vmr="using:Dilim.App.ViewModels"
              x:Class="Dilim.App.Views.Pages.TriggersPage"
              x:DataType="vm:TriggersPageViewModel">
   <StackPanel Spacing="18">
@@ -151,6 +152,106 @@
                         AutomationProperties.Name="{DynamicResource triggers.flip_wheel}" />
           <TextBlock Text="{DynamicResource triggers.flip_wheel}" TextWrapping="Wrap" VerticalAlignment="Center" />
         </DockPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- Choosing faster: number keys, direction, turbo, where the pie opens -->
+    <Border x:Name="SpeedCard" Classes="card">
+      <StackPanel Spacing="12" DataContext="{Binding Flip}" x:DataType="vm:FlipOptionsViewModel">
+        <TextBlock Classes="label" Text="{DynamicResource triggers.speed_title}" />
+        <DockPanel>
+          <ToggleSwitch DockPanel.Dock="Right" OnContent="{x:Null}" OffContent="{x:Null}" MinWidth="0"
+                        Margin="12,0,0,0" VerticalAlignment="Center" IsChecked="{Binding ShowKeyNumbers}"
+                        AutomationProperties.Name="{DynamicResource triggers.numbers}" />
+          <StackPanel Spacing="2">
+            <TextBlock Text="{DynamicResource triggers.numbers}" TextWrapping="Wrap" />
+            <TextBlock Classes="caption" Text="{DynamicResource triggers.numbers_hint}" TextWrapping="Wrap" />
+          </StackPanel>
+        </DockPanel>
+        <DockPanel>
+          <ToggleSwitch DockPanel.Dock="Right" OnContent="{x:Null}" OffContent="{x:Null}" MinWidth="0"
+                        Margin="12,0,0,0" VerticalAlignment="Center" IsChecked="{Binding DirectionalSelect}"
+                        AutomationProperties.Name="{DynamicResource triggers.direction}" />
+          <StackPanel Spacing="2">
+            <TextBlock Text="{DynamicResource triggers.direction}" TextWrapping="Wrap" />
+            <TextBlock Classes="caption" Text="{DynamicResource triggers.direction_hint}" TextWrapping="Wrap" />
+          </StackPanel>
+        </DockPanel>
+        <DockPanel>
+          <ToggleSwitch DockPanel.Dock="Right" OnContent="{x:Null}" OffContent="{x:Null}" MinWidth="0"
+                        Margin="12,0,0,0" VerticalAlignment="Center" IsChecked="{Binding Turbo}"
+                        AutomationProperties.Name="{DynamicResource triggers.turbo}" />
+          <StackPanel Spacing="2">
+            <TextBlock Text="{DynamicResource triggers.turbo}" TextWrapping="Wrap" />
+            <TextBlock Classes="caption" Text="{DynamicResource triggers.turbo_hint}" TextWrapping="Wrap" />
+          </StackPanel>
+        </DockPanel>
+        <DockPanel>
+          <ToggleSwitch DockPanel.Dock="Right" OnContent="{x:Null}" OffContent="{x:Null}" MinWidth="0"
+                        Margin="12,0,0,0" VerticalAlignment="Center" IsChecked="{Binding OpenAtScreenCenter}"
+                        AutomationProperties.Name="{DynamicResource triggers.center}" />
+          <StackPanel Spacing="2">
+            <TextBlock Text="{DynamicResource triggers.center}" TextWrapping="Wrap" />
+            <TextBlock Classes="caption" Text="{DynamicResource triggers.center_hint}" TextWrapping="Wrap" />
+          </StackPanel>
+        </DockPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- The user's own slices on the file actions pie -->
+    <Border x:Name="CustomActionsCard" Classes="card">
+      <StackPanel Spacing="10" DataContext="{Binding CustomActions}" x:DataType="vm:CustomActionsViewModel">
+        <TextBlock Classes="label" Text="{DynamicResource tool.custom.title}" />
+        <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource tool.custom.description}" />
+        <ItemsControl ItemsSource="{Binding Rows}" IsVisible="{Binding !IsEmpty}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="6" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:CustomActionRow">
+              <Border Classes="chip" HorizontalAlignment="Stretch">
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Classes="icon" ToolTip.Tip="{DynamicResource common.delete}"
+                          Command="{Binding $parent[ItemsControl].((vm:CustomActionsViewModel)DataContext).RemoveCommand}" CommandParameter="{Binding}">
+                    <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Close}" />
+                  </Button>
+                  <StackPanel Spacing="1">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="{Binding Action.Name}" FontWeight="SemiBold" />
+                      <TextBlock Classes="caption" Text="{Binding Kind}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Classes="caption" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </DockPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Grid ColumnDefinitions="*,8,180" RowDefinitions="Auto,8,Auto,8,Auto">
+          <TextBox Text="{Binding Name}" Watermark="{DynamicResource tool.custom.name}" />
+          <ComboBox Grid.Column="2" ItemsSource="{Binding Kinds}" SelectedItem="{Binding SelectedKind}" HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vmr:IChoice">
+                <TextBlock Text="{Binding Label}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBox Grid.Row="2" Grid.ColumnSpan="3" Text="{Binding Target}" Watermark="{Binding TargetHint}" />
+          <DockPanel Grid.Row="4" Grid.ColumnSpan="3">
+            <Button DockPanel.Dock="Right" Classes="accent" Margin="8,0,0,0" Command="{Binding AddCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Plus}" />
+                <TextBlock Text="{DynamicResource tool.custom.add}" />
+              </StackPanel>
+            </Button>
+            <TextBox Text="{Binding Arguments}" Watermark="{DynamicResource tool.custom.arguments}" IsVisible="{Binding IsCommand}" />
+          </DockPanel>
+        </Grid>
+        <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource tool.custom.placeholders}" />
+        <TextBlock Classes="caption danger" TextWrapping="Wrap" Text="{Binding Error}"
+                   IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>
     </Border>
 

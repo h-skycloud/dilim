@@ -163,6 +163,10 @@ public sealed partial class FlipOptionsViewModel : ObservableObject
         _save = save;
         _loading = true;
         FlipWithWheel = store.Settings.Donut.FlipWithWheel;
+        ShowKeyNumbers = store.Settings.Donut.ShowKeyNumbers;
+        DirectionalSelect = store.Settings.Donut.DirectionalSelect;
+        Turbo = store.Settings.Donut.Turbo;
+        OpenAtScreenCenter = store.Settings.Donut.OpenAtScreenCenter;
         _loading = false;
     }
 
@@ -174,6 +178,23 @@ public sealed partial class FlipOptionsViewModel : ObservableObject
     [ObservableProperty] private string? _error;
 
     [ObservableProperty] private bool _flipWithWheel;
+    [ObservableProperty] private bool _showKeyNumbers;
+    [ObservableProperty] private bool _directionalSelect;
+    [ObservableProperty] private bool _turbo;
+    [ObservableProperty] private bool _openAtScreenCenter;
+
+    private void Store(Action<DonutSettings> change)
+    {
+        if (_loading)
+            return;
+        change(Donut);
+        _save();
+    }
+
+    partial void OnShowKeyNumbersChanged(bool value) => Store(d => d.ShowKeyNumbers = value);
+    partial void OnDirectionalSelectChanged(bool value) => Store(d => d.DirectionalSelect = value);
+    partial void OnTurboChanged(bool value) => Store(d => d.Turbo = value);
+    partial void OnOpenAtScreenCenterChanged(bool value) => Store(d => d.OpenAtScreenCenter = value);
 
     /// <summary>The key that flips now ("Tab", "F2"), "Press a key…" while recording, or "—" for none.</summary>
     public string KeyText => IsRecording ? _loc["triggers.recording_key"]
@@ -259,7 +280,11 @@ public sealed partial class TriggersPageViewModel : ObservableObject, IDisposabl
             Gestures.Add(new TriggerGestureViewModel(gesture, loc, Save));
         ExcludedApps = new ExcludedAppsViewModel(store.Settings.ExcludedProcesses, platform, Save);
         Flip = new FlipOptionsViewModel(store, loc, Save);
+        CustomActions = new CustomActionsViewModel(store.Settings.CustomActions, loc, Save);
     }
+
+    /// <summary>The user's own slices on the file actions pie.</summary>
+    public CustomActionsViewModel CustomActions { get; }
 
     /// <summary>The key and the wheel that flip the open donut.</summary>
     public FlipOptionsViewModel Flip { get; }

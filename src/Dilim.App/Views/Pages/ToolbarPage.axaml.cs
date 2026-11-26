@@ -12,7 +12,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Dilim.App.Controls;
+using Dilim.App.Services;
 using Dilim.App.ViewModels.Pages;
 
 namespace Dilim.App.Views.Pages;
@@ -180,5 +182,35 @@ public partial class ToolbarPage : UserControl
         Donut.SetDropPreview(-1);
         Donut.SetDimmedIndex(-1);
         PaletteBox.Classes.Set("over", false);
+    }
+
+    private static readonly Avalonia.Platform.Storage.FilePickerFileType PieType = new("Dilim pie") { Patterns = ["*.dilim-pie.json", "*.json"] };
+
+    private async void OnExportPie(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is not ToolbarPageViewModel vm || vm.SelectedProfile is not { } selected || TopLevel.GetTopLevel(this) is not { } top)
+            return;
+        var file = await top.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+        {
+            SuggestedFileName = string.Concat(selected.Name.Split(Path.GetInvalidFileNameChars())) + ".dilim-pie.json",
+            DefaultExtension = "json",
+            FileTypeChoices = [PieType],
+        });
+        if (file?.TryGetLocalPath() is { } path)
+            vm.ExportProfile(path);
+    }
+
+    private async void OnImportPie(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is not ToolbarPageViewModel vm || TopLevel.GetTopLevel(this) is not Window owner)
+            return;
+        var files = await owner.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions { FileTypeFilter = [PieType] });
+        if (files.FirstOrDefault()?.TryGetLocalPath() is not { } path)
+            return;
+        try { vm.ImportProfiles(path); }
+        catch (Exception ex) when (ex is IOException or System.Text.Json.JsonException or InvalidDataException or UnauthorizedAccessException)
+        {
+            await AppHost.Get<WindowService>().MessageAsync(owner, ex.Message);
+        }
     }
 }

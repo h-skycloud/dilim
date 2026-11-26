@@ -2,17 +2,24 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Dilim.App.ViewModels"
         xmlns:svc="using:Dilim.App.Services"
+        xmlns:tools="using:Dilim.App.Views.Tools"
         x:Class="Dilim.App.Views.EngineSetupWindow"
         x:DataType="vm:EngineSetupViewModel"
         Title="{DynamicResource setup.title}"
         Width="560" SizeToContent="Height" CanResize="False"
-        WindowStartupLocation="CenterScreen"
-        Background="{DynamicResource SurfaceBrush}">
-  <StackPanel Margin="26,24" Spacing="16">
-    <StackPanel Spacing="6">
-      <TextBlock Classes="h1" Text="{DynamicResource setup.title}" />
-      <TextBlock Classes="muted" TextWrapping="Wrap" Text="{DynamicResource setup.description}" />
-    </StackPanel>
+        WindowStartupLocation="CenterScreen">
+  <tools:CardFrame Title="{DynamicResource setup.title}" Scrolls="False">
+    <tools:CardFrame.Footer>
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+          <Button Content="{Binding CloseText}" Command="{Binding CloseCommand}" />
+          <Button Classes="accent" Content="{DynamicResource setup.install}" Command="{Binding InstallCommand}" IsVisible="{Binding CanChoose}" />
+        </StackPanel>
+        <TextBlock Classes="muted" VerticalAlignment="Center" Text="{Binding SelectionText}" IsVisible="{Binding CanChoose}" />
+      </DockPanel>
+    </tools:CardFrame.Footer>
+  <StackPanel Spacing="16">
+    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{DynamicResource setup.description}" />
 
     <ItemsControl ItemsSource="{Binding Packages}">
       <ItemsControl.ItemsPanel>
@@ -51,13 +58,6 @@
     </ItemsControl>
 
     <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource setup.note}" />
-
-    <DockPanel>
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
-        <Button Content="{Binding CloseText}" Command="{Binding CloseCommand}" />
-        <Button Classes="accent" Content="{DynamicResource setup.install}" Command="{Binding InstallCommand}" IsVisible="{Binding CanChoose}" />
-      </StackPanel>
-      <TextBlock Classes="muted" VerticalAlignment="Center" Text="{Binding SelectionText}" IsVisible="{Binding CanChoose}" />
-    </DockPanel>
   </StackPanel>
+  </tools:CardFrame>
 </Window>

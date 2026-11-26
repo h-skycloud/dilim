@@ -47,6 +47,23 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
     private bool _loading;
     private bool _repositioning;
 
+    /// <summary>Saves the selected donut as a ".dilim-pie.json" to share.</summary>
+    public void ExportProfile(string path)
+    {
+        if (SelectedProfile?.Profile is { } profile) _store.ExportProfile(profile, path);
+    }
+
+    /// <summary>Adds the donuts of a ".dilim-pie.json" (or any presets file) and selects the first one.</summary>
+    public void ImportProfiles(string path)
+    {
+        var before = _store.Profiles.Select(p => p.Id).ToHashSet();
+        _store.Import(path);
+        Profiles.Clear();
+        foreach (var profile in _store.Profiles)
+            Profiles.Add(new ProfileItemViewModel(profile, _loc));
+        SelectedProfile = Profiles.FirstOrDefault(p => !before.Contains(p.Profile.Id)) ?? Profiles.FirstOrDefault();
+    }
+
     public ToolbarPageViewModel(UserDataStore store, ILocalizer loc, WindowService windows)
     {
         _store = store;
@@ -111,6 +128,9 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
 
     /// <summary>Extension chips of a normal profile (null for a mixed one).</summary>
     [ObservableProperty] private ExtensionTagsViewModel? _extensionTags;
+
+    /// <summary>The apps the selected donut is for (empty: any app).</summary>
+    [ObservableProperty] private ExcludedAppsViewModel? _profileApps;
 
     /// <summary>The donut shows and edits the back face of the profile (the Front / Back switch).</summary>
     [ObservableProperty] private bool _editingBack;
@@ -220,6 +240,11 @@ public sealed partial class ToolbarPageViewModel : ObservableObject
         CanDelete = CanChangeMixed;
         CanReset = profile is not null && _store.CanResetProfile(profile);
         ExtensionTags = profile is { IsFallback: false } ? new ExtensionTagsViewModel(profile, _store.Profiles, _loc, _store.SaveLibrary) : null;
+        ProfileApps = profile is null ? null : new ExcludedAppsViewModel(profile.Apps, AppHost.Services.GetService(typeof(Dilim.Core.Platform.IPlatformServices)) as Dilim.Core.Platform.IPlatformServices, () =>
+        {
+            _store.SaveLibrary();
+            ExtensionTags?.Refresh();
+        });
         MixedExtensions = profile is { IsFallback: true } ? new MixedExtensionsViewModel(profile, _store.Profiles, _loc, _store.SaveLibrary) : null;
     }
 

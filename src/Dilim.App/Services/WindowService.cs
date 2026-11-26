@@ -301,7 +301,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         var dialog = new Window
         {
             Title = loc["app.name"],
-            Width = 400,
+            Width = 440,
             SizeToContent = SizeToContent.Height,
             CanResize = false,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -315,20 +315,17 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         yes.Click += (_, _) => { answer = true; dialog.Close(true); };
         no.Click += (_, _) => dialog.Close(false);
         no.IsVisible = withCancel;
-        dialog.Content = new StackPanel
+        dialog.Content = new Views.Tools.CardFrame
         {
-            Margin = new Thickness(22),
-            Spacing = 18,
-            Children =
+            Title = loc["app.name"],
+            Scrolls = false,
+            Body = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 6) },
+            Footer = new StackPanel
             {
-                new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap },
-                new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    Spacing = 8,
-                    Children = { no, yes },
-                },
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Spacing = 8,
+                Children = { no, yes },
             },
         };
         if (owner is { IsVisible: true })

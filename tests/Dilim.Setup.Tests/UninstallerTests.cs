@@ -16,6 +16,7 @@ public class UninstallerTests
     [Fact]
     public void Uninstalling_removes_dilim_and_keeps_the_settings()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         var (bench, record) = Installed(SetupTasks.Defaults with { DesktopIcon = true });
         using var _ = bench;
         var settings = bench.Temp.Write(Path.Combine(Path.GetRelativePath(bench.Temp.Path, bench.Paths.SettingsFolder), "settings.json"), "{}");
@@ -43,6 +44,7 @@ public class UninstallerTests
     [Fact]
     public void The_settings_go_when_the_user_asks()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         var (bench, record) = Installed();
         using var _ = bench;
         bench.Temp.Write(Path.Combine(Path.GetRelativePath(bench.Temp.Path, bench.Paths.SettingsFolder), @"logs\dilim.log"));
@@ -55,6 +57,7 @@ public class UninstallerTests
     [Fact]
     public void Files_that_are_not_dilims_stay()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         var (bench, record) = Installed();
         using var _ = bench;
         var mine = Path.Combine(bench.InstallFolder, "my notes.txt");
@@ -67,6 +70,7 @@ public class UninstallerTests
     [Fact]
     public void A_dll_explorer_has_loaded_is_moved_out_and_deleted_at_the_next_restart()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         var (bench, record) = Installed();
         using var _ = bench;
         // Stand-in for DilimExplorerMenu.dll loaded by Explorer: a real DLL loaded into this process, which Windows
@@ -93,6 +97,7 @@ public class UninstallerTests
     [Fact]
     public void The_waiting_uninstaller_is_released_last_before_its_file_goes()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         var (bench, record) = Installed();
         using var _ = bench;
         var uninstaller = Path.Combine(bench.InstallFolder, "uninstall.exe");
@@ -111,6 +116,7 @@ public class UninstallerTests
     [Fact]
     public void Programs_left_running_are_ended_but_not_the_uninstaller_that_waits()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         var (bench, record) = Installed();
         using var _ = bench;
         bench.System.Running.Add(new RunningProgram(11, Path.Combine(bench.InstallFolder, "dilim-cli.exe")));
@@ -176,6 +182,7 @@ public class PreviousInstallTests
     [Fact]
     public void Inno_setups_app_path_is_enough_and_the_scope_is_kept_apart()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var temp = new TempFolder();
         temp.Write(@"Dilim\Dilim.exe");
         temp.Write(@"Dilim\unins000.exe");
@@ -192,6 +199,7 @@ public class PreviousInstallTests
     [Fact]
     public void Current_tasks_come_from_what_is_registered_now()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var temp = new TempFolder();
         var paths = SetupPaths.Sandbox(temp.Sub("pc"));
         var folder = Path.GetDirectoryName(temp.Write(@"pc\Program Files\Dilim\Dilim.exe"))!;
@@ -215,7 +223,11 @@ public class PathVariableTests
     [InlineData(@"C:\a", @"C:\F\cli", @"C:\a;C:\F\cli")]
     [InlineData(@"C:\a;", @"C:\F\cli", @"C:\a;C:\F\cli")]
     [InlineData(@"C:\a;c:\f\CLI\", @"C:\F\cli", @"C:\a;c:\f\CLI\")]
-    public void Add(string? paths, string folder, string expected) => Assert.Equal(expected, PathVariable.Add(paths, folder));
+    public void Add(string? paths, string folder, string expected)
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: PATH entries use Windows paths and separators.");
+        Assert.Equal(expected, PathVariable.Add(paths, folder));
+    }
 
     [Theory]
     [InlineData(@"C:\a;C:\F\cli;C:\b", @"C:\a;C:\b")]
@@ -223,7 +235,11 @@ public class PathVariableTests
     [InlineData(@"C:\a;;C:\F\CLI;C:\b;", @"C:\a;;C:\b;")]
     [InlineData(@"C:\F\cli", "")]
     [InlineData(@"C:\a;C:\F\cli2", @"C:\a;C:\F\cli2")]
-    public void Remove(string paths, string expected) => Assert.Equal(expected, PathVariable.Remove(paths, @"C:\F\cli"));
+    public void Remove(string paths, string expected)
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: PATH entries use Windows paths and separators.");
+        Assert.Equal(expected, PathVariable.Remove(paths, @"C:\F\cli"));
+    }
 
     [Fact]
     public void Setting_keeps_the_kind_and_reports_changes()

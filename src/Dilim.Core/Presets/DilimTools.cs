@@ -11,6 +11,17 @@ public static class DilimTools
     public static bool NeedsMediaEngine(string id, IReadOnlyList<FileFormat> formats) =>
         formats.Any(f => f.Category is FormatCategory.Video or FormatCategory.Audio) && !Actions.Contains(id);
 
+    /// <summary>The file actions pie: Dilim's actions, then the user's own slices.</summary>
+    public static IReadOnlyList<Preset> ActionsWith(IEnumerable<CustomAction> custom) =>
+        [.. Actions.Select(Make), .. custom.Select(a => new Preset
+        {
+            Id = "dilim-" + a.ToolId,
+            ToolId = a.ToolId,
+            Name = a.Name,
+            Kind = PresetKind.Tool,
+            TargetFormat = SameTarget,
+        })];
+
     public static Preset Make(string id) => new()
     {
         Id = "dilim-" + id,

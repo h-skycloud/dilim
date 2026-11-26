@@ -33,6 +33,12 @@ public sealed class ToolbarProfile
     /// </summary>
     public bool IsFallback { get; set; }
 
+    /// <summary>
+    /// Apps (process names, as the excluded apps) this donut is for: over one of them it is chosen before the donuts
+    /// for any app. Empty: any app.
+    /// </summary>
+    public List<string> Apps { get; set; } = [];
+
     /// <summary>Preset ids in donut order, clockwise starting at 12 o'clock.</summary>
     public List<string> PresetIds { get; set; } = [];
 
@@ -57,6 +63,7 @@ public sealed class ToolbarProfile
         IsFallback = IsFallback,
         PresetIds = [.. PresetIds],
         BackPresetIds = BackPresetIds is null ? null : [.. BackPresetIds],
+        Apps = [.. Apps],
     };
 }
 
@@ -71,23 +78,31 @@ public static class ProfileSelector
     /// <item>otherwise the catch-all (see <see cref="CatchAll"/>).</item>
     /// </list>
     /// </summary>
-    public static ToolbarProfile? Select(IReadOnlyList<ToolbarProfile> profiles, IEnumerable<string> filePaths)
+    public static ToolbarProfile? Select(IReadOnlyList<ToolbarProfile> profiles, IEnumerable<string> filePaths, string? app = null)
     {
         var extensions = filePaths
             .Select(FormatRegistry.ExtensionOf)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        if (extensions.Count > 0)
+        // A donut made for the app the files come from wins; donuts for other apps never show.
+        if (!string.IsNullOrEmpty(app))
         {
-            var match = profiles.FirstOrDefault(p => !p.IsFallback && extensions.All(p.Matches))
-                        ?? profiles.FirstOrDefault(p => p.IsFallback && p.Extensions.Count > 0 && extensions.All(p.Matches));
-            if (match is not null)
-                return match;
+            var forApp = profiles.Where(p => p.Apps.Contains(app, StringComparer.OrdinalIgnoreCase)).ToList();
+            if (forApp.Count > 0 && Pick(forApp, extensions) is { } own)
+                return own;
         }
-
-        return CatchAll(profiles);
+        var general = profiles.Where(p => p.Apps.Count == 0).ToList();
+        if (Pick(general, extensions) is { } match)
+            return match;
+        return CatchAll(general.Count > 0 ? general : profiles);
     }
+
+    private static ToolbarProfile? Pick(IReadOnlyList<ToolbarProfile> profiles, List<string> extensions) =>
+        extensions.Count == 0 ? null
+            : profiles.FirstOrDefault(p => !p.IsFallback && extensions.All(p.Matches))
+              ?? profiles.FirstOrDefault(p => p.IsFallback && p.Extensions.Count > 0 && extensions.All(p.Matches))
+              ?? (profiles.Any(p => p.Apps.Count > 0) ? profiles.FirstOrDefault(p => p.IsFallback && p.Extensions.Count == 0) : null);
 
     /// <summary>
     /// The profile used for selections no other profile takes: the first mixed-selection profile with no extensions.

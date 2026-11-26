@@ -15,6 +15,7 @@ public class InstallerTests
     [Fact]
     public void A_fresh_install_puts_everything_in_place()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         var result = bench.Install();
         Assert.True(result.Succeeded, result.Error?.ToString());
@@ -59,6 +60,7 @@ public class InstallerTests
     [Fact]
     public void The_windows_11_menu_is_registered_when_ticked()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         bench.System.ExplorerMenuSupported = true;
         Assert.True(bench.Install().Succeeded);
@@ -68,6 +70,7 @@ public class InstallerTests
     [Fact]
     public void A_fresh_install_without_the_top_menu_removes_an_old_registration()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         bench.System.ExplorerMenuSupported = true;
         bench.System.MenuRegistered = true;
@@ -79,6 +82,7 @@ public class InstallerTests
     [Fact]
     public void A_failed_menu_registration_is_a_warning_not_a_failure()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         bench.System.ExplorerMenuSupported = true;
         bench.System.RegisterError = "0x80073CF3 the package failed update";
@@ -90,6 +94,7 @@ public class InstallerTests
     [Fact]
     public void Updating_over_dilim_1_x_takes_the_inno_setup_installation_over()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         var folder = bench.InstallFolder;
         // Dilim 1.12.0 as Inno Setup installed it: its files, unins000.*, the key with Inno's values, its PATH entry,
@@ -148,6 +153,7 @@ public class InstallerTests
     [Fact]
     public void Updating_our_own_install_replaces_exactly_its_files()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench(version: "2.0.0", app: (temp, _) => temp.Write(@"app\Removed.dll", "only in 2.0.0"));
         Assert.True(bench.Install().Succeeded);
         var folder = bench.InstallFolder;
@@ -172,6 +178,7 @@ public class InstallerTests
     [Fact]
     public void Unticking_on_an_update_removes_the_desktop_icon_and_the_path_entry()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         Assert.True(bench.Install(bench.Choices(SetupTasks.Defaults with { DesktopIcon = true, Cli = true })).Succeeded);
         var desktop = Path.Combine(bench.Paths.CommonDesktop, SetupNames.ShortcutName);
@@ -186,6 +193,7 @@ public class InstallerTests
     [Fact]
     public void A_failure_halfway_puts_the_previous_version_back()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         Assert.True(bench.Install().Succeeded);
         var folder = bench.InstallFolder;
@@ -214,6 +222,7 @@ public class InstallerTests
     [Fact]
     public void A_damaged_payload_changes_nothing()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         long offset;
         using (var payload = Dilim.Setup.Payload.SetupPayload.Open(bench.SetupExe)!)
@@ -234,6 +243,7 @@ public class InstallerTests
     [Fact]
     public void No_icons_and_portable()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         Assert.True(bench.Install(bench.Choices() with { NoIcons = true }).Succeeded);
         Assert.False(File.Exists(Path.Combine(bench.Paths.CommonStartMenu, SetupNames.ShortcutName)));
@@ -253,6 +263,7 @@ public class InstallerTests
     [Fact]
     public void A_per_user_install_stays_in_the_users_part()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         var folder = bench.Paths.DefaultInstallFolder(InstallScope.User);
         var result = bench.Install(bench.Choices() with { Folder = folder, Scope = InstallScope.User }, previous: null);
@@ -268,6 +279,7 @@ public class InstallerTests
     [Fact]
     public void Dilim_1_1_from_velopack_is_removed_but_its_engines_stay()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         var root = VelopackInstall.Root(bench.Paths);
         bench.Temp.Write(Path.Combine(Path.GetRelativePath(bench.Temp.Path, root), "Update.exe"));

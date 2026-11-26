@@ -125,6 +125,40 @@ public partial class RadialWindow : Window
 
     public event Action? EscapePressed;
 
+    private Point? _turboStart;
+    private bool _turboMoved;
+
+    /// <summary>
+    /// Turbo mode: the donut was opened with a key shortcut, whose keys are still held. Moving to a slice and letting
+    /// go of them chooses it; letting go without moving leaves the donut open as usual.
+    /// </summary>
+    public bool TurboArmed
+    {
+        get => _turboStart is not null || _turboArmed;
+        set { _turboArmed = value; _turboStart = null; _turboMoved = false; }
+    }
+    private bool _turboArmed;
+
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+        if (!_turboArmed) return;
+        var p = e.GetPosition(this);
+        _turboStart ??= p;
+        if (Math.Abs(p.X - _turboStart.Value.X) + Math.Abs(p.Y - _turboStart.Value.Y) > 24) _turboMoved = true;
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        base.OnKeyUp(e);
+        if (!_turboArmed || (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Shift | KeyModifiers.Meta)) != 0)
+            return;
+        var moved = _turboMoved;
+        TurboArmed = false;
+        if (moved && Donut.InvokeActive())
+            e.Handled = true;
+    }
+
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);

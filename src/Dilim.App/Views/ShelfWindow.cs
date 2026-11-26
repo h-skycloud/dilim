@@ -7,7 +7,9 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Avalonia.VisualTree;
 using Dilim.App.Services;
+using Dilim.App.Views.Tools;
 using Dilim.Core.Localization;
 using Dilim.Core.Platform;
 using Dilim.Core.Shelf;
@@ -42,6 +44,9 @@ public sealed class ShelfWindow : Window
     private readonly Border _handle = new();
     private readonly TextBlock _handleText = new() { VerticalAlignment = VerticalAlignment.Center, FontSize = 12 };
     private readonly HashSet<string> _selected = new(FileSystemPaths.Comparer);
+    private readonly Dictionary<string, Avalonia.Media.Imaging.Bitmap?> _thumbs = new(FileSystemPaths.Comparer);
+    private readonly Button _sets = new();
+    private readonly TextBox _newSet = new() { IsVisible = false, Margin = new Thickness(0, 0, 0, 10) };
     private string? _anchor;
     private (string Path, Point Start, bool WasSelected, PointerPressedEventArgs Event)? _press;
     private bool _draggingOut;
@@ -70,9 +75,36 @@ public sealed class ShelfWindow : Window
         }
         _add.Click += async (_, _) => await PickAsync();
         _clear.Click += (_, _) => { _selected.Clear(); _list.Clear(); };
-        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto"), Margin = new Thickness(4, 0, 0, 12) };
-        header.Children.Add(new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center, Children = { _title, _count } });
-        Place(header, _pin, 1); Place(header, _add, 2); Place(header, _clear, 3);
+        var close = new Button { Content = Icon("Icon.Close", 11) };
+        close.Classes.Add("tool-close"); close.Classes.Add("small");
+        close.Margin = new Thickness(6, 0, 0, 0);
+        close.Click += (_, _) => Hide();
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto,Auto"), Margin = new Thickness(4, 0, 0, 12), Background = Brushes.Transparent };
+        _sets.Classes.Add("shelf-sets");
+        _sets.Content = new StackPanel
+        {
+            Children =
+            {
+                new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { _title, Icon("Icon.ArrowDown", 10).Also(i => i.VerticalAlignment = VerticalAlignment.Center) } },
+                _count,
+            },
+        };
+        _sets.Click += (_, _) => SetsMenu().Open(_sets);
+        _newSet.KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Enter && ShelfList.CleanSetName(_newSet.Text) is { } name) { _newSet.IsVisible = false; _selected.Clear(); _list.Switch(name); e.Handled = true; }
+            else if (e.Key == Key.Escape) { _newSet.IsVisible = false; e.Handled = true; }
+        };
+        _newSet.LostFocus += (_, _) => _newSet.IsVisible = false;
+        header.Children.Add(_sets);
+        Place(header, _pin, 1); Place(header, _add, 2); Place(header, _clear, 3); Place(header, close, 4);
+        // No system title bar: the header moves the card.
+        header.PointerPressed += (_, e) =>
+        {
+            if (e.GetCurrentPoint(header).Properties.IsLeftButtonPressed && (e.Source as Visual)?.FindAncestorOfType<Button>(includeSelf: true) is null
+                && (e.Source as Visual)?.FindAncestorOfType<ToggleButton>(includeSelf: true) is null)
+                BeginMoveDrag(e);
+        };
 
         // Body: the drop surface holding the rows, or an empty state that says what the shelf is for.
         _scroll = new ScrollViewer { Content = _rows, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
@@ -110,11 +142,14 @@ public sealed class ShelfWindow : Window
         var footer = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), Margin = new Thickness(0, 12, 0, 0) };
         Place(footer, _handle, 0); Place(footer, _convert, 2);
 
-        var root = new Grid { RowDefinitions = new RowDefinitions("Auto,*,Auto,Auto"), Margin = new Thickness(14) };
-        Place(root, header, 0, row: true); Place(root, _drop, 1, row: true); Place(root, footer, 2, row: true);
+        var root = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto,Auto"), Margin = new Thickness(16) };
+        Place(root, header, 0, row: true); Place(root, _newSet, 1, row: true); Place(root, _drop, 2, row: true); Place(root, footer, 3, row: true);
         _hint.Margin = new Thickness(4, 10, 4, 0);
-        Place(root, _hint, 3, row: true);
-        Content = root;
+        Place(root, _hint, 4, row: true);
+        var card = new Border { Child = root };
+        card.Classes.Add("tool-card");
+        Content = card;
+        Tools.CardFrame.Dress(this);
 
         AddHandler(KeyDownEvent, OnKey, RoutingStrategies.Tunnel);
         Closing += (_, e) => { e.Cancel = true; Hide(); };
@@ -136,7 +171,9 @@ public sealed class ShelfWindow : Window
     private void Refresh()
     {
         Title = _loc["tool.float"];
-        _title.Text = _loc["tool.float.short"];
+        _title.Text = _list.Current.Length == 0 ? _loc["tool.float.short"] : _list.Current;
+        _newSet.Watermark = _loc["tool.shelf.set_name"];
+        ToolTip.SetTip(_sets, _loc["tool.shelf.sets"]);
         _count.Text = _loc.Format("tool.shelf.count", _list.Count);
         _hint.Text = _loc["tool.shelf.hint"];
         _handleText.Text = _selected.Count > 0 ? _loc.Format("tool.shelf.drag_selected", _selected.Count) : _loc["tool.shelf.drag_all"];
@@ -181,6 +218,7 @@ public sealed class ShelfWindow : Window
         badge.Child = isFolder || extension.Length == 0 || extension.Length > 5
             ? Icon(isFolder ? "Icon.Folder" : "Icon.FileOutline", 18)
             : new TextBlock { Text = extension.ToUpperInvariant() };
+        if (exists && !isFolder) ShowThumbnail(path, badge);
 
         var title = new TextBlock { Text = name, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
         var detail = new TextBlock
@@ -210,6 +248,70 @@ public sealed class ShelfWindow : Window
         row.PointerMoved += async (_, e) => await OnRowMoved(row, e);
         row.PointerReleased += (_, e) => OnRowReleased(path, e);
         return row;
+    }
+
+    /// <summary>A small picture of an image, the first page of a PDF or a frame of a video, in place of its badge.</summary>
+    private void ShowThumbnail(string path, Border badge)
+    {
+        if (_thumbs.TryGetValue(path, out var known))
+        {
+            if (known is not null) Picture(badge, known);
+            return;
+        }
+        var category = Dilim.Core.Profiles.ProfileSelector.DetectFormats([path]).FirstOrDefault()?.Category;
+        if (category is not (Dilim.Core.Formats.FormatCategory.Image or Dilim.Core.Formats.FormatCategory.Pdf or Dilim.Core.Formats.FormatCategory.Video))
+            return;
+        _thumbs[path] = null;
+        _ = Load();
+
+        async Task Load()
+        {
+            try
+            {
+                var png = category switch
+                {
+                    Dilim.Core.Formats.FormatCategory.Image => await Dilim.Engines.Tools.ToolPreviews.ImageAsync(path, 96),
+                    Dilim.Core.Formats.FormatCategory.Pdf => await Dilim.Engines.Tools.ToolPreviews.PdfPageAsync(path, 0, 72),
+                    _ => await Dilim.Engines.Tools.ToolPreviews.VideoFrameAsync(path, 0.5, 96),
+                };
+                if (png is null) return;
+                using var stream = new MemoryStream(png);
+                var bitmap = new Avalonia.Media.Imaging.Bitmap(stream);
+                _thumbs[path] = bitmap;
+                Picture(badge, bitmap);
+            }
+            catch (Exception) { /* the badge stays */ }
+        }
+    }
+
+    private static void Picture(Border badge, Avalonia.Media.Imaging.Bitmap bitmap)
+    {
+        badge.Classes.Add("picture");
+        badge.Child = new Image { Source = bitmap, Stretch = Stretch.UniformToFill };
+    }
+
+    /// <summary>The main shelf and the named sets, a new set and deleting the one shown.</summary>
+    private ContextMenu SetsMenu()
+    {
+        var menu = new ContextMenu();
+        foreach (var name in _list.Sets)
+        {
+            var item = new MenuItem { Header = name.Length == 0 ? _loc["tool.float.short"] : name, Icon = name == _list.Current ? Icon("Icon.Check", 12) : null };
+            var target = name;
+            item.Click += (_, _) => { _selected.Clear(); _list.Switch(target); };
+            menu.Items.Add(item);
+        }
+        menu.Items.Add(new Separator());
+        var create = new MenuItem { Header = _loc["tool.shelf.new_set"], Icon = Icon("Icon.Plus", 12) };
+        create.Click += (_, _) => { _newSet.Text = ""; _newSet.IsVisible = true; _newSet.Focus(); };
+        menu.Items.Add(create);
+        if (_list.Current.Length > 0)
+        {
+            var delete = new MenuItem { Header = _loc.Format("tool.shelf.delete_set", _list.Current), Icon = Icon("Icon.Delete", 12) };
+            delete.Click += (_, _) => { _selected.Clear(); _list.DeleteSet(_list.Current); };
+            menu.Items.Add(delete);
+        }
+        return menu;
     }
 
     private ContextMenu Menu(string path)
@@ -323,12 +425,20 @@ public sealed class ShelfWindow : Window
         }
         if (data.Items.Count == 0) return;
         _draggingOut = true;
+        // Shift+drag: the pie opens under the pointer, and the files go straight onto one of its slices.
+        var toPie = trigger.KeyModifiers.HasFlag(KeyModifiers.Shift);
+        if (toPie)
+        {
+            var at = this.PointToScreen(trigger.GetPosition(this));
+            AppHost.Get<RadialController>().ShowForDrag(at.X, at.Y);
+        }
         try
         {
             await DragDrop.DoDragDropAsync(trigger, data, DragDropEffects.Copy | DragDropEffects.Move | DragDropEffects.Link);
         }
         finally
         {
+            if (toPie) AppHost.Get<RadialController>().OnDragGestureEnded();
             _draggingOut = false;
             _drop.Classes.Remove("over");
         }

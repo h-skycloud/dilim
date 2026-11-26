@@ -15,6 +15,13 @@ taşınırsa THIRD-PARTY-NOTICES.md'ye Kando'nun MIT bildirimi eklenir.
 | Menü temaları | `theme.json`, yumuşaklık, vurgu rengi (`ThemeService`, docs/CUSTOM-THEMES.md) |
 | Uygulamaya göre kapatma | Hariç tutulan uygulamalar (`ExcludedAppsViewModel`) |
 
+## Durum (1.1.0)
+
+Yayında: 1 (rakam tuşları, rozetsiz), 2 (turbo), 3 (yön ile seçim), 4 (basılı tut–sürükle–bırak: halkada veya halkanın
+dışında bırakılan dilim seçilir), 5 (sağ tık / merkez = geri), 6 (URL, komut, uygulamayla aç), 7 (uygulamaya göre pie),
+8 (pie dışa/içe aktarma), 9 (ekran ortasında aç), 11 (raftan Shift+sürükle ile pie). Alınmadı: 10 (ses teması) — sessiz
+kalmak bir dosya aracı için daha uygun; "metin yapıştır" ve "kısayol gönder" eylemleri — bir dosya seçimiyle anlamı zayıf.
+
 ## Önerilen özellikler (öncelik sırasıyla)
 
 ### Faz 1 — Hız (küçük iş, büyük kazanç)

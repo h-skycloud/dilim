@@ -13,13 +13,13 @@
         ShowInTaskbar="False"
         ShowActivated="False"
         CanResize="False">
-  <Border Classes="card" Margin="12" Padding="16,14">
+  <Border Classes="card notice" Margin="12" Padding="18,16">
     <DockPanel>
       <Image DockPanel.Dock="Left" Source="avares://Dilim/Assets/Icons/dilim.png" Width="36" Height="36"
              VerticalAlignment="Top" Margin="0,2,12,0" />
       <StackPanel Spacing="8">
         <DockPanel>
-          <Button DockPanel.Dock="Right" Classes="icon" Padding="4" VerticalAlignment="Top" Click="OnClose">
+          <Button DockPanel.Dock="Right" Classes="tool-close small" VerticalAlignment="Top" Click="OnClose">
             <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Close}" />
           </Button>
           <TextBlock FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center"

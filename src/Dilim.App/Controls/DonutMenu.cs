@@ -379,7 +379,7 @@ public sealed partial class DonutMenu : Control
             if (hit.Kind == DonutHitKind.Outside && Distance(p, Center) < inner && InFan(p, _expanded))
                 return new DonutHit(DonutHitKind.Segment, _expanded);
         }
-        return hit;
+        return Directional(hit, p);
     }
 
     // ───────────────────────── Layout ─────────────────────────
@@ -494,6 +494,15 @@ public sealed partial class DonutMenu : Control
 
         if (point.Properties.IsRightButtonPressed)
         {
+            // Back: right-click off the ring's slices (or anywhere, when slices can't be edited) folds an open ring.
+            if (!IsEditMode && _expanded >= 0 && (hit.Kind is DonutHitKind.Outside or DonutHitKind.Center || !AllowContextEdit))
+            {
+                var group = _expanded;
+                CollapseGroup();
+                SetHover(group);
+                e.Handled = true;
+                return;
+            }
             if (hit.Kind is DonutHitKind.Segment or DonutHitKind.EditButton && (IsEditMode || AllowContextEdit))
             {
                 SegmentContextRequested?.Invoke(this, hit.Index);
@@ -545,6 +554,9 @@ public sealed partial class DonutMenu : Control
                 break;
             case DonutHitKind.SubSegment when !IsEditMode && Items![hit.Index].Children![hit.Sub].IsEnabled:
                 SubSegmentInvoked?.Invoke(this, (hit.Index, hit.Sub));
+                break;
+            case DonutHitKind.Center when !IsEditMode && _expanded >= 0:
+                CollapseGroup(); // the centre goes back a level first
                 break;
             case DonutHitKind.Center when !IsEditMode:
                 CenterInvoked?.Invoke(this, EventArgs.Empty);
@@ -886,6 +898,7 @@ public sealed partial class DonutMenu : Control
                     r2 - r1 - 16, typeface, typefaceRegular, hot);
             }
         }
+        DrawDirection(context, center, r2);
 
         if (IsEditMode && _previewSpan.Value > 0.01)
             DrawPreview(context, center, r1, r2, typeface, typefaceRegular);

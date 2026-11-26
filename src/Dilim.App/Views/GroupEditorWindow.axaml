@@ -3,16 +3,16 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Dilim.App.ViewModels"
+        xmlns:tools="using:Dilim.App.Views.Tools"
         x:Class="Dilim.App.Views.GroupEditorWindow"
         x:DataType="vm:GroupEditorViewModel"
         Title="{DynamicResource group.editor_title}"
         Icon="avares://Dilim/Assets/Icons/dilim.ico"
-        Width="480" Height="560" MinWidth="400" MinHeight="420"
+        Width="500" Height="600" MinWidth="420" MinHeight="440"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">
-  <DockPanel>
-    <Border DockPanel.Dock="Bottom" Padding="20,12" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource SubtleBorderBrush}"
-            Background="{DynamicResource SurfaceBrush}">
+  <tools:CardFrame Title="{DynamicResource group.editor_title}">
+    <tools:CardFrame.Footer>
       <DockPanel>
         <Button x:Name="DeleteButton" DockPanel.Dock="Left" Classes="ghost" Content="{DynamicResource group.delete}" Click="OnDelete"
                 IsVisible="{Binding CanDelete}" />
@@ -21,15 +21,8 @@
           <Button Classes="accent" Content="{DynamicResource common.save}" Click="OnSave" IsDefault="True" IsEnabled="{Binding IsValid}" />
         </StackPanel>
       </DockPanel>
-    </Border>
-    <ScrollViewer Padding="20,16">
+    </tools:CardFrame.Footer>
       <StackPanel Spacing="14">
-        <StackPanel Orientation="Horizontal" Spacing="10">
-          <Border Width="34" Height="34" CornerRadius="999" Background="{DynamicResource AccentSoftBrush}">
-            <PathIcon Width="16" Height="16" Data="{StaticResource Icon.Donut}" Foreground="{DynamicResource AccentStrongBrush}" />
-          </Border>
-          <TextBlock Classes="h2" VerticalAlignment="Center" Text="{DynamicResource group.editor_title}" />
-        </StackPanel>
         <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource group.hint}" />
 
         <StackPanel>
@@ -99,6 +92,5 @@
           </StackPanel>
         </Border>
       </StackPanel>
-    </ScrollViewer>
-  </DockPanel>
+  </tools:CardFrame>
 </Window>

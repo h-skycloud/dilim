@@ -3,6 +3,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Dilim.App.ViewModels.Pages"
+        xmlns:tools="using:Dilim.App.Views.Tools"
         x:Class="Dilim.App.Views.LibreOfficeOptionsWindow"
         x:DataType="vm:EnginesPageViewModel"
         Title="{DynamicResource engines.lo_title}"
@@ -12,11 +13,13 @@
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">
-  <StackPanel Margin="22" Spacing="12">
-    <StackPanel Spacing="4">
-      <TextBlock Classes="h2" Text="{DynamicResource engines.lo_title}" />
-      <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource engines.lo_description}" />
-    </StackPanel>
+  <tools:CardFrame Title="{DynamicResource engines.lo_title}" Scrolls="False">
+    <tools:CardFrame.Footer>
+      <Button Classes="accent" HorizontalAlignment="Right" MinWidth="88" HorizontalContentAlignment="Center"
+              Content="{DynamicResource common.close}" Click="OnClose" IsDefault="True" IsCancel="True" />
+    </tools:CardFrame.Footer>
+  <StackPanel Spacing="14">
+    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{DynamicResource engines.lo_description}" />
     <StackPanel Spacing="2">
       <ToggleSwitch IsChecked="{Binding LibreOfficeForSlides}" OnContent="{DynamicResource engines.lo_slides}" OffContent="{DynamicResource engines.lo_slides}" />
       <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource engines.lo_slides_hint}" />
@@ -33,7 +36,6 @@
       <ToggleSwitch IsChecked="{Binding LibreOfficeForHwp}" OnContent="{DynamicResource engines.lo_hwp}" OffContent="{DynamicResource engines.lo_hwp}" />
       <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource engines.lo_hwp_hint}" />
     </StackPanel>
-    <Button Classes="accent" HorizontalAlignment="Right" Margin="0,6,0,0" MinWidth="88" HorizontalContentAlignment="Center"
-            Content="{DynamicResource common.close}" Click="OnClose" IsDefault="True" IsCancel="True" />
   </StackPanel>
+  </tools:CardFrame>
 </Window>
