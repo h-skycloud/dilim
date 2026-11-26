@@ -728,30 +728,61 @@ internal static class SettingsMigrations
         //      back. One the user emptied is saved empty and stays so.
         if (from < 30 || profiles.Any(p => p.BackPresetIds is null))
             changed |= AddBackFaces(presets, profiles);
-        // v31: "Compress PDF" opens the PDF size reducer and is the PDF donut's first slice. When the front is full,
-        //      "HWP" (or else the last slice) moves to the back face in its place; a donut without it is left alone.
-        if (from < 31)
-            changed |= PromotePdfCompression(presets, profiles);
+        // v31: "Compress PDF" was briefly the PDF donut's first slice; v32 below decides where it goes.
+        // v32: "Compress" means archiving: the one-ZIP slice goes to the front of the built-in donuts with room for it.
+        //      On the PDF donut it is the first slice (in place of "Reduce PDF size", or of "HWP" on a full front), and
+        //      "Reduce PDF size" is first on the back face (the size reducer is also the first tool of the tools pie).
+        if (from < 32)
+            changed |= ZipOnFronts(presets, profiles);
         return changed;
     }
 
-    private static bool PromotePdfCompression(List<Preset> presets, List<ToolbarProfile> profiles)
+    private static bool ZipOnFronts(List<Preset> presets, List<ToolbarProfile> profiles)
     {
-        if (presets.All(p => p.Id != "compress-pdf") || profiles.FirstOrDefault(p => p.Id == "pdf") is not { } pdf
-            || pdf.PresetIds.Contains("compress-pdf"))
+        if (presets.All(p => p.Id != BuiltInData.ZipAll))
             return false;
-        var back = pdf.BackPresetIds ??= [];
-        var slot = back.IndexOf("compress-pdf");
-        back.Remove("compress-pdf");
-        if (pdf.PresetIds.Count >= ToolbarProfile.MaxSlices)
+        var changed = false;
+        if (profiles.FirstOrDefault(p => p.Id == "pdf") is { } pdf)
         {
-            var moved = pdf.PresetIds.Contains("to-hwp") ? "to-hwp" : pdf.PresetIds[^1];
-            pdf.PresetIds.Remove(moved);
-            if (!back.Contains(moved) && back.Count < ToolbarProfile.MaxSlices)
-                back.Insert(slot < 0 ? 0 : slot, moved);
+            var back = pdf.BackPresetIds ??= [];
+            var front = pdf.PresetIds;
+            var reduce = front.IndexOf("compress-pdf");
+            if (!front.Contains(BuiltInData.ZipAll))
+            {
+                if (reduce >= 0)
+                    front[reduce] = BuiltInData.ZipAll;
+                else
+                {
+                    if (front.Count >= ToolbarProfile.MaxSlices)
+                    {
+                        var moved = front.Contains("to-hwp") ? "to-hwp" : front[^1];
+                        front.Remove(moved);
+                        if (!back.Contains(moved) && back.Count < ToolbarProfile.MaxSlices)
+                            back.Insert(0, moved);
+                    }
+                    front.Insert(0, BuiltInData.ZipAll);
+                }
+                back.Remove(BuiltInData.ZipAll);
+                changed = true;
+            }
+            else if (reduce >= 0)
+            {
+                front.RemoveAt(reduce);
+                changed = true;
+            }
+            // "Reduce PDF size" first on the back face, where Tab finds it at once.
+            if (!front.Contains("compress-pdf") && back.IndexOf("compress-pdf") != 0 && presets.Any(p => p.Id == "compress-pdf")
+                && (back.Contains("compress-pdf") || back.Count < ToolbarProfile.MaxSlices))
+            {
+                back.Remove("compress-pdf");
+                back.Insert(0, "compress-pdf");
+                changed = true;
+            }
         }
-        pdf.PresetIds.Insert(0, "compress-pdf");
-        return true;
+        var builtIn = BuiltInData.CreateProfiles().Select(p => p.Id).ToHashSet();
+        foreach (var profile in profiles.Where(p => builtIn.Contains(p.Id) && !p.IsFallback))
+            changed |= BuiltInData.PutZipOnFront(profile);
+        return changed;
     }
 
     /// <summary>

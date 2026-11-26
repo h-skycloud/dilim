@@ -10,6 +10,25 @@ one-line summaries in the user's language (a line per change; a language without
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 1.1.1
+
+<!-- update
+level: recommended
+tr: “Sıkıştır” artık ZIP yapar ve her pie'ın ana dilimlerinde; PDF'te ilk dilim
+tr: Dosya küçültme “Boyut düşür” adıyla Araçlar pie'ında; PDF için “PDF boyutunu düşür” arka yüzde
+tr: Araç çubuğu sayfasında pie içe/dışa aktarma düğmeleri kendi satırında
+en: “Compress” makes a ZIP and sits on the front of every pie; first on the PDF pie
+en: Making files smaller is “Reduce size” on the tools pie; “Reduce PDF size” is on the PDF pie's back face
+en: Pie import/export buttons on their own row on the Toolbar page
+-->
+
+- **Compress means ZIP.** "Compress" packs the selection into one ZIP. It is on the front of every built-in pie with
+  room for it, and the first slice of the PDF pie.
+- **Reduce size** is the tool that makes files smaller (pictures, video, sound and PDF, with its levels and live
+  preview). It is the first slice of the tools pie; on the PDF pie, "Reduce PDF size" is the first slice of the back
+  face (Tab).
+- On the Toolbar page, "Import pie" and "Export pie" have a row of their own inside the profile card.
+
 ## 1.1.0
 
 <!-- update

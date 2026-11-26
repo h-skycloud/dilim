@@ -494,7 +494,7 @@ public class UserDataStoreTests
         Assert.DoesNotContain("mp3", profiles.Single(p => p.Id == "audio").Extensions);
         Assert.Contains("flac", profiles.Single(p => p.Id == "audio").Extensions);
         Assert.Contains(presets, p => p.Id == "to-mp4");
-        Assert.Equal(["compress-pdf", "to-png", "to-jpg", "to-docx"], profiles.Single(p => p.Id == "pdf").PresetIds.Take(4)); // schema 31: compress first
+        Assert.Equal(["zip-all", "to-png", "to-jpg", "to-docx"], profiles.Single(p => p.Id == "pdf").PresetIds.Take(4)); // schema 32: compress (ZIP) first
         Assert.Contains("zip-all", profiles.Single(p => p.Id == "mixed").PresetIds);
         // Every extension belongs to one donut only.
         var all = profiles.SelectMany(p => p.Extensions).ToList();
@@ -609,7 +609,7 @@ public class UserDataStoreTests
         Assert.Contains("json", data.Extensions);
         Assert.Contains("yaml", data.Extensions);
         Assert.DoesNotContain("yml", data.Extensions); // the user's donut keeps it
-        Assert.Equal(["to-json", "to-yaml", "to-toml", "to-xml", "to-csv", "to-xlsx"], data.PresetIds);
+        Assert.Equal(["to-json", "to-yaml", "to-toml", "to-xml", "to-csv", "to-xlsx", "zip-all"], data.PresetIds); // schema 32: compress
         Assert.Contains("msg", profiles.Single(p => p.Id == "office").Extensions);
         var sheets = profiles.Single(p => p.Id == "spreadsheets").PresetIds;
         Assert.Equal(sheets.IndexOf("to-csv") + 1, sheets.IndexOf("to-json"));
@@ -678,7 +678,7 @@ public class UserDataStoreTests
         Assert.DoesNotContain("ape", audio.Extensions); // the user's donut keeps it
         var ids = profiles.Select(p => p.Id).ToList();
         Assert.Equal(ids.IndexOf("audio") + 1, ids.IndexOf("subtitles"));
-        Assert.Equal(BuiltInData.SubtitleProfile().PresetIds, profiles.Single(p => p.Id == "subtitles").PresetIds);
+        Assert.Equal([.. BuiltInData.SubtitleProfile().PresetIds, "zip-all"], profiles.Single(p => p.Id == "subtitles").PresetIds);
         Assert.Contains("smi", profiles.Single(p => p.Id == "subtitles").Extensions);
         Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "video").PresetIds, profiles.Single(p => p.Id == "video").PresetIds);
         Assert.Equal(VideoCodec.Hevc, presets.Single(p => p.Id == "mp4-hevc").Media.VideoCodec);
@@ -740,7 +740,7 @@ public class UserDataStoreTests
         Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("geo"));
         var models = profiles.Single(p => p.Id == "models");
         Assert.Equal(["glb", "gltf", "stl", "obj", "3mf", "ply", "fbx"], models.Extensions);
-        Assert.Equal(BuiltInData.ModelProfile().PresetIds, models.PresetIds);
+        Assert.Equal([.. BuiltInData.ModelProfile().PresetIds, "zip-all"], models.PresetIds);
         Assert.False(SettingsMigrations.ApplyToLibrary(14, presets, profiles)); // once only
     }
 
@@ -865,7 +865,7 @@ public class UserDataStoreTests
         Assert.Equal(ids.IndexOf("mixed") - 1, ids.IndexOf("geo"));
         var geo = profiles.Single(p => p.Id == "geo");
         Assert.Equal(["geojson", "kml", "kmz", "gpx", "shp"], geo.Extensions);
-        Assert.Equal(BuiltInData.GeoProfile().PresetIds, geo.PresetIds);
+        Assert.Equal([.. BuiltInData.GeoProfile().PresetIds, "zip-all"], geo.PresetIds);
         Assert.All(geo.PresetIds, id => Assert.Contains(presets, p => p.Id == id));
         Assert.False(SettingsMigrations.ApplyToLibrary(24, presets, profiles)); // once only
     }
@@ -902,7 +902,7 @@ public class UserDataStoreTests
         SettingsMigrations.ApplyToLibrary(24, presets, profiles);
 
         var geo = profiles.Single(p => p.Id == "geo");
-        Assert.Equal(["to-kml"], geo.PresetIds);
+        Assert.Equal(["to-kml", "zip-all"], geo.PresetIds); // only "Compress" joins it (schema 32)
         // The extensions of the default donut that no donut takes yet are added to it, after the user's own.
         Assert.Equal(["kml", "geojson", "kmz", "gpx", "shp"], geo.Extensions);
     }
@@ -1229,7 +1229,8 @@ public class UserDataStoreTests
         var compress = presets.Single(p => p.Id == "compress-pdf");
         Assert.Equal(("pdf", PdfCompression.Ebook, false), (compress.TargetFormat, compress.Pdf.Compression, compress.Pdf.CompressWithGhostscript));
         Assert.Equal("pdf-split", presets[presets.IndexOf(compress) - 1].Id); // where a new library has it
-        Assert.Equal("compress-pdf", profiles.Single(p => p.Id == "pdf").PresetIds[0]); // schema 31
+        Assert.Equal("zip-all", profiles.Single(p => p.Id == "pdf").PresetIds[0]); // schema 32
+        Assert.Equal("compress-pdf", profiles.Single(p => p.Id == "pdf").BackPresetIds![0]);
         Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "pdf").PresetIds, profiles.Single(p => p.Id == "pdf").PresetIds);
         Assert.False(SettingsMigrations.ApplyToLibrary(17, presets, profiles)); // once only
     }
@@ -1451,7 +1452,7 @@ public class UserDataStoreTests
     }
 
     [Fact]
-    public void Version_30_libraries_get_compress_pdf_as_the_first_pdf_slice()
+    public void Version_30_libraries_get_compress_as_the_first_pdf_slice_and_reduce_size_on_the_back()
     {
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
@@ -1462,7 +1463,32 @@ public class UserDataStoreTests
         Assert.True(SettingsMigrations.ApplyToLibrary(30, presets, profiles));
 
         Assert.Equal(BuiltInData.PdfDonut, pdf.PresetIds);
-        Assert.Equal(["to-hwp", "to-webp", "to-tiff"], pdf.BackPresetIds);
+        Assert.Equal(["compress-pdf", "to-hwp", "to-webp", "to-tiff"], pdf.BackPresetIds); // schema 32 moves it back
         Assert.False(SettingsMigrations.ApplyToLibrary(30, presets, profiles)); // once only
+    }
+
+    [Fact]
+    public void Version_31_libraries_get_zip_on_the_front_and_reduce_size_on_the_back()
+    {
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var pdf = profiles.Single(p => p.Id == "pdf");
+        pdf.PresetIds = ["compress-pdf", .. BuiltInData.PdfDonut.Skip(1)];
+        pdf.BackPresetIds = ["to-hwp", "to-webp", "zip-all"];
+        var images = profiles.Single(p => p.Id == "images");
+        images.PresetIds.Remove("zip-all");
+        images.BackPresetIds!.Add("zip-all");
+        var mine = new ToolbarProfile { Id = "mine", Extensions = ["xyz"], PresetIds = ["to-pdf"] };
+        profiles.Insert(0, mine);
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(31, presets, profiles));
+
+        Assert.Equal(BuiltInData.PdfDonut, pdf.PresetIds);
+        Assert.Equal(["compress-pdf", "to-hwp", "to-webp"], pdf.BackPresetIds);
+        Assert.Equal("zip-all", images.PresetIds[^1]);
+        Assert.DoesNotContain("zip-all", images.BackPresetIds!);
+        Assert.Equal(["to-pdf"], mine.PresetIds); // a donut the user made stays as it is
+        Assert.False(SettingsMigrations.ApplyToLibrary(31, presets, profiles)); // once only
+        Assert.All(BuiltInData.CreateProfiles(), p => Assert.False(p.PresetIds.Intersect(p.BackPresetIds ?? []).Any()));
     }
 }
