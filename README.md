@@ -8,14 +8,14 @@ A local, open-source Windows file converter with a radial menu.
 
 ## Use
 
-Install `Dilim-0.5.0-win-Setup.exe`, or extract the portable ZIP and run `Dilim Başlat.vbs`. No separate .NET installation is required. Select a file in Explorer and press **Ctrl + Alt + Space**. **Ctrl + Alt + T** opens tools; **Ctrl + Alt + A** opens file actions. Tab flips the pie; Escape closes it.
+Install `Dilim-1.0.0-win-Setup.exe`, or extract the portable ZIP and run `Dilim Başlat.vbs`. No separate .NET installation is required. Select a file in Explorer and press **Ctrl + Alt + Space**. **Ctrl + Alt + T** opens tools; **Ctrl + Alt + A** opens file actions. Tab flips the pie; Escape closes it.
 
 Choose FFmpeg and 7-Zip on first run for video/audio and archive operations. Engines are downloaded from pinned, checksum-verified original releases. After installation conversions work offline. Files are processed locally; media is not uploaded. The app has no personal-website shortcut.
 
 ## Features
 
-- Photo conversion/compression, resizing, rotation, metadata/background tools, annotation and redaction.
-- PDF conversion, compression with image DPI/quality, merge, split and page organization.
+- Every tool in its own window with a live preview: photos (crop, edit, annotate, redact with face/text detection, collage, metadata), video (speed, frames, crop, trim, split, redact, join), audio (trim, channels, normalize, visualizer, bleep) and compression with a target size.
+- PDF size reducer (Smart or Flatten, five levels, measured size and quality, target size), page organizer, merge and split.
 - Video H.264/HEVC/AV1/VP9, CRF, encoder speed, FPS, exact/scaled dimensions, rotation, hardware encoding and custom FFmpeg output options.
 - Audio conversion, CBR/VBR, sample format/rate, independent tempo and pitch.
 - FileConverter XML preset import, folders, a complete compatible-preset list and editable pie profiles.

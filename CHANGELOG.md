@@ -10,6 +10,41 @@ one-line summaries in the user's language (a line per change; a language without
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 1.0.0
+
+<!-- update
+level: recommended
+tr: Her araç artık kendi penceresinde: önizleme, sürüklenebilir kutular, film şeridi ve dalga formu
+tr: Video: hız, kare kaydetme, kırpma, kesme, bölme ve bölgesel gizleme
+tr: Ses: kesme, kanallar, normalleştirme, görselleştirici ve bip
+tr: Fotoğraf: kırpma, düzenleme, not ekleme, gizleme (yüz ve metin algılama), kolaj, meta veri
+tr: Sıkıştırma: resim, video ve ses için Dengeli/Güçlü ve hedef dosya boyutu
+en: Every tool has its own window: previews, draggable boxes, film strip and waveform
+en: Video: speed, frames, crop, trim, split and redaction by time range
+en: Audio: trim, channels, normalize, visualizer and bleep
+en: Photos: crop, edit, annotate, redact (face and text detection), collage, metadata
+en: Compress pictures, video and sound: Balanced/Strong and a target file size
+-->
+
+Every tool now opens in a window of its own, with what it works on in front of you.
+
+- **Photos.** *Crop* with a box, preset ratios and exact pixels. *Edit photo* with a live preview: exposure,
+  brightness, contrast, highlights, shadows, whites, blacks, gamma, temperature, tint, saturation, vibrance, hue,
+  clarity, dehaze, grain and noise reduction. *Annotate* with arrows, pen, text, rectangles, ellipses, highlighter,
+  numbered labels, a magnifier and inserted pictures. *Redact* several areas with a solid colour or pixelation;
+  *Faces* and *Text* find them for you on this computer (Windows' own detection). *Collage* in a grid, row, column or
+  featured layout with canvas, width, spacing, corners, background and order.
+- **Video.** *Change speed* from 0.25× to 4× (sound keeps its pitch), *save frames* as full-size PNGs, *crop* with the
+  original sound kept as it is, *trim* with handles or exact times, *split* at points or into equal parts, *redact*
+  boxes that each have their own time range, *join* clips of different shapes.
+- **Audio.** *Trim* on the waveform (silent ends removed if you like), *convert channels* with left and right volume
+  and a preview of each, *normalize* to a target loudness with input and output levels, *visualize* as a moving
+  waveform or a still picture in landscape, portrait or square, *bleep* several sections and compare.
+- **Compress** pictures, video and sound: Balanced or Strong, a smaller size, and a target file size or share.
+- **Metadata:** every field of a picture, recording, video or PDF, grouped and searchable; change, remove, or remove
+  everything.
+- **PDF:** reduce size, organize pages and merge, as in 0.4 and 0.5.
+
 ## 0.5.0
 
 <!-- update
