@@ -164,6 +164,64 @@ public sealed class SingleInstance : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Where the running Dilim notes its version and process (next to the settings). Dilim 0.4.0 and earlier don't
+    /// write it, so a running Dilim without this note (or with a note from a process that is gone) is an older one.
+    /// </summary>
+    internal static string RunningNote => Path.Combine(UserDataStore.DefaultDirectory, "running.txt");
+
+    /// <summary>The first instance writes its version, process id and executable.</summary>
+    public void NoteRunning(string version)
+    {
+        if (!IsFirst) return;
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(RunningNote)!);
+            File.WriteAllLines(RunningNote, [version, Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture), Environment.ProcessPath ?? ""]);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+    }
+
+    /// <summary>
+    /// The version of the Dilim that holds the lock, from its note; null when it wrote none (an older Dilim) or the
+    /// note belongs to a process that has ended.
+    /// </summary>
+    public static string? RunningVersion(TimeSpan? settle = null)
+    {
+        // A Dilim started a moment ago (Explorer starts one per selected file) writes its note right after taking the
+        // lock: wait a little for it before deciding the running one is old.
+        var until = DateTime.UtcNow + (settle ?? TimeSpan.Zero);
+        while (true)
+        {
+            var version = ReadNote();
+            if (version is not null || DateTime.UtcNow >= until) return version;
+            Thread.Sleep(100);
+        }
+    }
+
+    private static string? ReadNote()
+    {
+        try
+        {
+            var lines = File.ReadAllLines(RunningNote);
+            if (lines.Length < 2 || !int.TryParse(lines[1], out var pid)) return null;
+            using var process = System.Diagnostics.Process.GetProcessById(pid);
+            return process.HasExited ? null : lines[0];
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Whether a launch of <paramref name="mine"/> should replace the running Dilim: it is older (or too old to say).
+    /// A launch of an older copy (an old shortcut) leaves a newer one running.
+    /// </summary>
+    internal static bool ShouldReplace(string? running, string mine) =>
+        running is null
+        || (Version.TryParse(running.Split('-', '+')[0], out var r) && Version.TryParse(mine.Split('-', '+')[0], out var m) && m > r);
+
     /// <summary>Stops listening and releases the mutex. Safe to call twice (a restart releases it before shutting down).</summary>
     public void Dispose()
     {

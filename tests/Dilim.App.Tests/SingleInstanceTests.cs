@@ -125,4 +125,13 @@ public class SingleInstanceAccessTests
         if (state.Shell == Dilim.Core.Platform.IntegrityLevel.Unknown)
             Assert.False(state.ShellCannotReachDilim);
     }
+
+    [Theory]
+    [InlineData(null, "0.4.1", true)]      // 0.4.0 and earlier write no note: replaced by any newer launch
+    [InlineData("0.4.0", "0.4.1", true)]
+    [InlineData("0.4.1", "0.4.1", false)]  // the same version: the launch goes to it, as before
+    [InlineData("0.5.0", "0.4.1", false)]  // an old shortcut never replaces a newer Dilim
+    [InlineData("0.4.1-beta", "0.4.1", false)]
+    public void A_newer_launch_replaces_an_older_running_dilim(string? running, string mine, bool replace) =>
+        Assert.Equal(replace, SingleInstance.ShouldReplace(running, mine));
 }

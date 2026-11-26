@@ -197,4 +197,53 @@ public class ToolWindowsTests
             if (dark) theme.Apply(new ThemeSettings(), language);
         }
     }
+
+    [AvaloniaTheory]
+    [InlineData("tr", false)]
+    [InlineData("tr", true)]
+    [InlineData("en", false)]
+    public void Organize_pdf_turns_repeats_removes_and_saves_the_pages(string language, bool dark)
+    {
+        TestServices.EnsureInitialized(language);
+        var theme = AppHost.Get<ThemeService>();
+        try
+        {
+            if (dark) theme.Apply(new ThemeSettings { Mode = ThemeMode.Dark, CornerRadius = 16 }, language);
+            var file = Pdf($"Proje {language}{dark}.pdf", 4);
+            var window = new PdfOrganizeTool([file], AppHost.Get<ILocalizer>());
+            window.Show();
+            int Cards() => window.GetVisualDescendants().OfType<Border>().Count(b => b.Classes.Contains("page-card"));
+            Settle(() => Cards() == 4 && Pictures(window) >= 4);
+            for (var i = 0; i < 200 && Pictures(window) < 4; i++) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(25); RenderTests.Pump(); }
+            Assert.Equal(4, Cards());
+
+            Button Action(int card, string key) => window.GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("page-card")).ElementAt(card)
+                .GetVisualDescendants().OfType<Button>().Single(b => ToolTip.GetTip(b) as string == AppHost.Get<ILocalizer>()[key]);
+            void Click(Button b) { b.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Settle(); }
+            Click(Action(1, "tool.organize.rotate"));
+            Click(Action(2, "tool.organize.duplicate"));
+            Click(Action(4, "tool.organize.remove"));
+            Settle();
+            Assert.Equal(4, Cards());
+            RenderTests.Save(window, $"tool-organize-pdf-{language}{(dark ? "-dark" : "")}.png");
+
+            if (language == "tr" && !dark)
+            {
+                var primary = window.GetVisualDescendants().OfType<Button>().Single(b => b.Content as string == AppHost.Get<ILocalizer>()["tool.organize.run"]);
+                primary.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                var output = Path.Combine(Root, "Dilim", Path.GetFileName(file));
+                for (var i = 0; i < 200 && !File.Exists(output); i++) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(25); }
+                Settle();
+                using var saved = PdfSharp.Pdf.IO.PdfReader.Open(output, PdfSharp.Pdf.IO.PdfDocumentOpenMode.Import);
+                // Pages 1, 2 (turned), 3, 3 — page 4 removed.
+                Assert.Equal(4, saved.PageCount);
+                Assert.Equal(90, saved.Pages[1].Rotate);
+            }
+            window.Close();
+        }
+        finally
+        {
+            if (dark) theme.Apply(new ThemeSettings(), language);
+        }
+    }
 }

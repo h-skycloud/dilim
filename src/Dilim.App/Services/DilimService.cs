@@ -92,6 +92,13 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
             shrink.Activate();
             return;
         }
+        if (id == "organizePDF")
+        {
+            var organize = new Views.Tools.PdfOrganizeTool(files.Where(f => Path.GetExtension(f).Equals(".pdf", StringComparison.OrdinalIgnoreCase)).ToArray() is { Length: > 0 } pdfs ? pdfs : files, loc);
+            organize.Show();
+            organize.Activate();
+            return;
+        }
         if (id is "mergePDF" or "joinVideos")
         {
             var merge = new Views.Tools.MergeTool(id, files, loc, RunAsync);

@@ -23,7 +23,7 @@ Sıra: en kolaydan en zora. Ortak bileşen, onu ilk kullanan aracın adımında 
 | --- | --- | --- | --- | --- |
 | 1 ✅ | PDF birleştir | 20 | İskelet, sıralama listesi, sayfa küçük görseli | — |
 | 2 ✅ | Videoları birleştir | 11 | Video küçük görseli | İlk klip çıktı tuvali (boyut, kare hızı); sesli/sessiz klip karışımı |
-| 3 | PDF sayfalarını düzenle | 21 | Sayfa ızgarası; döndür, çoğalt, sil; sırayı sıfırla | Sayfa döndürme, aynı genişlik |
+| 3 ✅ | PDF sayfalarını düzenle | 21 | Sayfa ızgarası; döndür, çoğalt, sil; sırayı sıfırla | Sayfa döndürme, aynı genişlik |
 | 4 | Görsel kırp | 5 | Tuval + kutu, oran düğmeleri, px girişi | — |
 | 5 | Video hızı | 10 | Video önizleyici, durak noktalı hız kaydırıcısı | Sessiz video desteği (var), perde koruma (var) |
 | 6 | Video karelerini kaydet | 12 | Kare seçimi, seçilen kareler şeridi | Birden çok kare, tam çözünürlük PNG |
