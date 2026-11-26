@@ -32,6 +32,10 @@
         </StackPanel>
         <!-- One row per change; a wrapped line lines up with the text, not the bullet -->
         <StackPanel x:Name="ChangesList" Spacing="3" />
+        <Button Classes="ghost" Padding="0" Click="OnNotes" HorizontalAlignment="Left">
+          <TextBlock Classes="caption" Text="{DynamicResource update.notes_link}" TextDecorations="Underline"
+                     Foreground="{DynamicResource AccentStrongBrush}" />
+        </Button>
         <TextBlock x:Name="CaptionText" Classes="caption" TextWrapping="Wrap" />
         <ProgressBar x:Name="Progress" Minimum="0" Maximum="100" IsVisible="False" />
         <StackPanel x:Name="Buttons" Orientation="Horizontal" Spacing="8" Margin="0,2,0,0">

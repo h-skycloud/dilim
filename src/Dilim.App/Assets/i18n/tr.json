@@ -1407,7 +1407,7 @@
   "tool.guide.close": "Anladım",
   "triggers.speed_title": "Hızlı seçim",
   "triggers.numbers": "Rakam tuşlarıyla seç",
-  "triggers.numbers_hint": "1–9 ve 0 dilimi doğrudan seçer; dilimlerde küçük rakamlar görünür.",
+  "triggers.numbers_hint": "1–9 ve 0 tuşları dilimi sırasıyla (saat 12’den başlayarak) doğrudan seçer.",
   "triggers.direction": "Yön ile seç",
   "triggers.direction_hint": "İmleç halkanın dışına çıksa da gösterdiği yöndeki dilim seçilir.",
   "triggers.turbo": "Turbo mod",
@@ -1440,5 +1440,6 @@
   "tool.custom.error_name": "Dilime bir ad ver.",
   "tool.custom.error_target": "Adresi ya da programı yaz.",
   "tool.custom.error_url": "Adres http:// ya da https:// ile başlamalı.",
-  "tool.custom.failed": "“{0}” çalıştırılamadı: {1}"
+  "tool.custom.failed": "“{0}” çalıştırılamadı: {1}",
+  "update.notes_link": "Bu sürümde neler var →"
 }

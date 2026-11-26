@@ -386,6 +386,22 @@ public sealed partial class UpdateService : ObservableObject
         return await response.Content.ReadAsStringAsync(cancellationToken);
     }
 
+    /// <summary>Opens the full notes of the new version (its release page), or of the latest one.</summary>
+    public void OpenReleaseNotes()
+    {
+        var url = HasRepository
+            ? RepositoryUrl.TrimEnd('/') + (LatestVersion is { } version ? "/releases/tag/v" + version : "/releases/latest")
+            : WebsiteUrl;
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+        {
+            _log.LogWarning(ex, "Could not open {Url}", url);
+        }
+    }
+
     /// <summary>Opens a download page: the website for installed copies, the release page (portable zip) otherwise.</summary>
     public void OpenDownloadPage()
     {

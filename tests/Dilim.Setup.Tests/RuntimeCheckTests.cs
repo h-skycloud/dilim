@@ -9,6 +9,7 @@ public class RuntimeCheckTests
     [Fact]
     public void Imports_of_a_windows_program_are_read()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         // Windows' own programs import system DLLs (some through API sets).
         var imports = RuntimeCheck.ImportedDlls(Path.Combine(Environment.SystemDirectory, "cmd.exe"));
         Assert.NotEmpty(imports);
@@ -31,6 +32,7 @@ public class RuntimeCheckTests
     [Fact]
     public void A_bundled_engine_without_its_runtime_is_reported()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var temp = new TempFolder();
         var app = temp.Sub("app");
         var system = temp.Sub("system32");

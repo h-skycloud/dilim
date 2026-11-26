@@ -80,6 +80,7 @@ public class DilimPieTests
     [AvaloniaFact]
     public async Task Basic_tools_run_through_the_real_queue_for_images_pdf_and_archives()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         TestServices.EnsureInitialized();
         var service = AppHost.Get<DilimService>();
         var root = Directory.CreateTempSubdirectory("dilim-pie-basic-").FullName;

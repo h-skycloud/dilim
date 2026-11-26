@@ -60,3 +60,16 @@ Preserve the MIT copyright notice in LICENSE and THIRD-PARTY-NOTICES.md. Commit 
 settings, history, logs, caches or backups. Code signing is not configured; binaries are unsigned (Windows
 SmartScreen warns on first download). Keep ProductIdentity.InstallId stable: it is how Setup finds the previous
 installation. Windows x64 is the validated target.
+
+## winget
+
+Every release carries `Dilim-<version>-winget-manifests.zip`: the version, installer and locale manifests of
+`Dilim.Dilim`, with the Setup's address and SHA-256 filled in. To publish a version on winget, unzip it and open a pull
+request to `microsoft/winget-pkgs` with the `manifests/d/Dilim/Dilim/<version>` folder, or let wingetcreate do it:
+
+```
+wingetcreate submit --token <GitHub token> manifests/d/Dilim/Dilim/<version>
+```
+
+The first submission is reviewed by the winget team; later versions only need the new folder. Setup takes Inno's
+silent switches, so `winget install Dilim.Dilim` and `winget upgrade` install it without the wizard.

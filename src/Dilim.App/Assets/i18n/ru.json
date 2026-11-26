@@ -1407,7 +1407,7 @@
   "tool.guide.close": "Got it",
   "triggers.speed_title": "Quick choice",
   "triggers.numbers": "Choose with number keys",
-  "triggers.numbers_hint": "1–9 and 0 choose a slice directly; small numbers show on the slices.",
+  "triggers.numbers_hint": "1–9 and 0 choose a slice directly, in order from 12 o’clock.",
   "triggers.direction": "Choose by direction",
   "triggers.direction_hint": "Past the ring, the slice the pointer points at is chosen.",
   "triggers.turbo": "Turbo mode",
@@ -1440,5 +1440,6 @@
   "tool.custom.error_name": "Give the slice a name.",
   "tool.custom.error_target": "Write the address or the program.",
   "tool.custom.error_url": "The address must start with http:// or https://.",
-  "tool.custom.failed": "“{0}” could not run: {1}"
+  "tool.custom.failed": "“{0}” could not run: {1}",
+  "update.notes_link": "What’s new in this version →"
 }

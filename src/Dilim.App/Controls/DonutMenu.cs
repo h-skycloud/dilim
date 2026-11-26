@@ -896,7 +896,6 @@ public sealed partial class DonutMenu : Control
                 var hot = (i == ActiveIndex || i == _dropTargetIndex) && item.IsEnabled;
                 DrawLabel(context, item, center, (r1 + r2) / 2, mid, span * (r1 + r2) / 2 - 10,
                     r2 - r1 - 16, typeface, typefaceRegular, hot);
-                DrawKeyNumber(context, i, center, r2, mid, typefaceRegular, hot);
             }
         }
         DrawDirection(context, center, r2);

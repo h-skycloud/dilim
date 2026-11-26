@@ -14,7 +14,7 @@ public partial class DonutMenu
     public static readonly StyledProperty<bool> DirectionalSelectProperty =
         AvaloniaProperty.Register<DonutMenu, bool>(nameof(DirectionalSelect));
 
-    /// <summary>Small 1–9, 0 badges at the outer edge of the slices (the keys that choose them).</summary>
+    /// <summary>1–9 and 0 choose a slice (nothing is drawn on the slices for it).</summary>
     public bool ShowKeyNumbers { get => GetValue(ShowKeyNumbersProperty); set => SetValue(ShowKeyNumbersProperty, value); }
 
     /// <summary>Past the ring, the slice in the pointer's direction is the one it points at (click mode).</summary>
@@ -32,7 +32,7 @@ public partial class DonutMenu
     /// <summary>A number key: chooses that slice of the open ring, or of the donut (a group opens its ring).</summary>
     private bool HandleNumberKey(Key key)
     {
-        var number = NumberOf(key);
+        var number = ShowKeyNumbers ? NumberOf(key) : -1;
         if (number < 0)
             return false;
         if (ExpandedChildren is { } children)
@@ -64,17 +64,6 @@ public partial class DonutMenu
         if (hit.Kind != DonutHitKind.Outside || !DirectionalSelect || IsEditMode || _progressMode || Count == 0 || ExpandedChildren is not null)
             return hit;
         return new DonutHit(DonutHitKind.Segment, DonutGeometry.IndexAt(DonutGeometry.AngleOf(Center, p), Count));
-    }
-
-    /// <summary>Number badges at the outer edge of each slice.</summary>
-    private void DrawKeyNumber(DrawingContext context, int index, Point center, double r2, double mid, Typeface typeface, bool hot)
-    {
-        if (!ShowKeyNumbers || IsEditMode || index > 9)
-            return;
-        var text = MakeText(((index + 1) % 10).ToString(), typeface, 10, hot ? Foreground : SecondaryForeground, 20);
-        var at = DonutGeometry.PointAt(center, r2 - 10, mid);
-        using (context.PushOpacity(hot ? 0.95 : 0.6))
-            context.DrawText(text, new Point(at.X - text.Width / 2, at.Y - text.Height / 2));
     }
 
     /// <summary>Past the ring: a faint wedge from the ring to the pointer over the slice it points at.</summary>

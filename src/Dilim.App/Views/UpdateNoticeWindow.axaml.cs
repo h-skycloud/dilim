@@ -51,6 +51,8 @@ public partial class UpdateNoticeWindow : Window
 
     private void OnClose(object? sender, RoutedEventArgs e) => Close();
 
+    private void OnNotes(object? sender, RoutedEventArgs e) => AppHost.Get<UpdateService>().OpenReleaseNotes();
+
     private void OnUpdatesChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (UpdateTexts.Affects(e.PropertyName))

@@ -60,7 +60,7 @@ public sealed partial class DonutMenu
     private const double KeyboardJitter = 6;
 
     /// <summary>The slices of the group fanned out right now, or null.</summary>
-    private IReadOnlyList<DonutItem>? ExpandedChildren =>
+    internal IReadOnlyList<DonutItem>? ExpandedChildren =>
         !IsEditMode && _expanded >= 0 && _expanded < Count ? Items![_expanded].Children : null;
 
     private (double Inner, double Outer) SubRadii => (OuterRadius + PopOut + SubGap, OuterRadius + PopOut + SubGap + SubBand);

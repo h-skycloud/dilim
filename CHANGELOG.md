@@ -10,6 +10,34 @@ one-line summaries in the user's language (a line per change; a language without
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 1.1.0
+
+<!-- update
+level: recommended
+tr: Tüm pencereler yeni kart tasarımında: düzenleyiciler, adlandırma, motor kurulumu, raf ve bildirimler
+tr: Pie'da hızlı seçim: 1–9 tuşları, yön ile seçim, turbo mod, sağ tık ile geri, ekran ortasında açma
+tr: Raf: küçük önizlemeler, proje başına raflar, Shift ile sürükleyip pie dilimine bırakma, sonuçları rafa ekleme
+tr: Uygulamaya özel pie, pie dışa/içe aktarma ve kendi dilimlerin (web adresi, komut, programla aç)
+en: Every window in the new card design: editors, renaming, engine setup, shelf and notices
+en: Quicker pie: keys 1–9, choosing by direction, turbo mode, right-click to go back, opening in the middle
+en: Shelf: thumbnails, a shelf per project, Shift+drag onto a pie slice, results added to the shelf
+en: Pies for specific apps, pie export/import and slices of your own (web address, command, open with)
+-->
+
+- **One design everywhere.** The preset and group editors, file renaming, LibreOffice options, the close question,
+  engine setup, messages and the shelf open in the same soft card as the tools, with a round close button and the
+  buttons at the bottom. The corner notices share its corners, and the update card links to the full notes.
+- **Choosing faster in the pie** (Settings → Shortcuts → Quick choice): keys 1–9 and 0 choose a slice; past the ring,
+  the slice the pointer points at is chosen; opened with a shortcut, move to a slice while holding the keys and let go
+  (turbo); right-click or the centre goes back from a group's ring; the pie can open in the middle of the screen.
+- **Shelf:** pictures of images, PDFs and videos; shelves per project (click the title); Shift+drag a row to open the
+  pie and drop it on a slice; optionally, what conversions and tools save goes on the shelf (Settings → General).
+- **Pies for an app:** a donut can be limited to apps (Settings → Toolbar → Apps), and opens ahead of the general one
+  over them. A single pie exports to a `.dilim-pie.json` file and imports back.
+- **Your own slices** on the file actions pie: open a web address (`{name}` and the like are filled in), run a command
+  or open the files with a program.
+- Each release also carries winget manifests.
+
 ## 1.0.1
 
 <!-- update

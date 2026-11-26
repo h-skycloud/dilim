@@ -35,6 +35,53 @@ jobs:
           if ($notes -notmatch '<!-- update') { throw "The $releaseVersion section has no <!-- update --> block (level and one-line summaries)." }
           Set-Content -LiteralPath release-notes.md -Value $notes.Trim() -Encoding utf8
           "RELEASE_VERSION=$releaseVersion" >> $env:GITHUB_ENV
+      - name: winget manifests
+        shell: pwsh
+        run: |
+          # The three manifests winget-pkgs takes for this version (submit them with wingetcreate or a pull request
+          # to microsoft/winget-pkgs; see docs/DILIM-RELEASE.md). The installer is the version's own Setup.
+          $v = $env:RELEASE_VERSION
+          $setup = "Releases/Dilim-$v-win-Setup.exe"
+          $sha = (Get-FileHash $setup -Algorithm SHA256).Hash
+          $url = "https://github.com/${{ github.repository }}/releases/download/v$v/Dilim-$v-win-Setup.exe"
+          $dir = "winget/manifests/d/Dilim/Dilim/$v"
+          New-Item -ItemType Directory -Force $dir | Out-Null
+          @"
+          PackageIdentifier: Dilim.Dilim
+          PackageVersion: $v
+          DefaultLocale: en-US
+          ManifestType: version
+          ManifestVersion: 1.6.0
+          "@ -replace '(?m)^          ', '' | Set-Content "$dir/Dilim.Dilim.yaml" -Encoding utf8
+          @"
+          PackageIdentifier: Dilim.Dilim
+          PackageVersion: $v
+          InstallerType: inno
+          Scope: machine
+          InstallModes: [interactive, silent, silentWithProgress]
+          UpgradeBehavior: install
+          Installers:
+          - Architecture: x64
+            InstallerUrl: $url
+            InstallerSha256: $sha
+          ManifestType: installer
+          ManifestVersion: 1.6.0
+          "@ -replace '(?m)^          ', '' | Set-Content "$dir/Dilim.Dilim.installer.yaml" -Encoding utf8
+          @"
+          PackageIdentifier: Dilim.Dilim
+          PackageVersion: $v
+          PackageLocale: en-US
+          Publisher: Dilim
+          PackageName: Dilim
+          License: MIT
+          LicenseUrl: https://github.com/${{ github.repository }}/blob/main/LICENSE
+          PackageUrl: https://github.com/${{ github.repository }}
+          ShortDescription: Convert files and run file tools from a pie menu on the desktop.
+          ReleaseNotesUrl: https://github.com/${{ github.repository }}/releases/tag/v$v
+          ManifestType: defaultLocale
+          ManifestVersion: 1.6.0
+          "@ -replace '(?m)^          ', '' | Set-Content "$dir/Dilim.Dilim.locale.en-US.yaml" -Encoding utf8
+          Compress-Archive -Path winget/manifests -DestinationPath "Releases/Dilim-$v-winget-manifests.zip" -Force
       - name: Create release
         shell: pwsh
         env:

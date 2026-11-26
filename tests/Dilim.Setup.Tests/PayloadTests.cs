@@ -11,6 +11,7 @@ public class PayloadTests
     [Fact]
     public void The_app_comes_back_byte_for_byte()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench(app: (temp, _) => temp.Write(@"app\data\big.bin", new string('z', 3_000_000)));
         using var payload = SetupPayload.Open(bench.SetupExe)!;
         Assert.Equal("2.0.0", payload.Manifest.Version);
@@ -42,6 +43,7 @@ public class PayloadTests
     [InlineData("random")]
     public void The_x86_filter_gives_back_the_exact_bytes(string file)
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         var original = file == "random"
             ? System.Security.Cryptography.RandomNumberGenerator.GetBytes(1_000_000)
             : File.ReadAllBytes(Path.Combine(Environment.SystemDirectory, file));
@@ -60,6 +62,7 @@ public class PayloadTests
     [Fact]
     public void Programs_go_through_the_x86_filter()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench(app: (temp, _) => File.Copy(Path.Combine(Environment.SystemDirectory, "kernel32.dll"), temp.Sub(@"app\native.dll")));
         using var payload = SetupPayload.Open(bench.SetupExe)!;
         Assert.Equal(PayloadFile.X86, payload.Manifest.Files.Single(f => f.Path == "native.dll").Filter);
@@ -72,6 +75,7 @@ public class PayloadTests
     [Fact]
     public void Large_apps_are_packed_in_several_segments()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench(app: (temp, _) =>
         {
             temp.Write(@"app\a.bin", new string('a', (int)(SetupPayload.FastSegmentSize + 1000)));
@@ -90,6 +94,7 @@ public class PayloadTests
     [Fact]
     public void The_uninstaller_is_the_program_without_its_payload()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         using var payload = SetupPayload.Open(bench.SetupExe)!;
         var uninstaller = bench.Temp.Sub("uninstall.exe");
@@ -109,6 +114,7 @@ public class PayloadTests
     [Fact]
     public void A_damaged_payload_is_found_before_anything_is_unpacked()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         long offset;
         using (var payload = SetupPayload.Open(bench.SetupExe)!)
@@ -123,6 +129,7 @@ public class PayloadTests
     [Fact]
     public void A_damaged_manifest_or_trailer_is_refused()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         var bytes = File.ReadAllBytes(bench.SetupExe);
         var manifestLength = BinaryPrimitives.ReadInt64LittleEndian(bytes.AsSpan(bytes.Length - SetupPayload.TrailerLength + 32));
@@ -140,6 +147,7 @@ public class PayloadTests
     [Fact]
     public void A_file_that_does_not_match_its_checksum_stops_unpacking()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var bench = new SetupBench();
         // Same layout, but the manifest claims another hash for one file (and is re-sealed): Verify passes, ExtractTo must not.
         var bytes = File.ReadAllBytes(bench.SetupExe);
@@ -175,6 +183,7 @@ public class PayloadTests
     [Fact]
     public void The_payload_is_found_in_front_of_an_authenticode_signature()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         using var temp = new TempFolder();
         // A minimal PE32+ header whose certificate table (security directory) is the last 512 bytes of the file, as
         // signtool leaves a signed Setup: the payload sits right before it.
@@ -202,6 +211,7 @@ public class PayloadTests
     [Fact]
     public void A_signed_program_cannot_get_a_payload()
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only: the installer, registry and bundled tools are Windows parts.");
         // Signing has to come last: a payload behind the signature would not be covered by it.
         using var temp = new TempFolder();
         temp.Write(@"app\Dilim.exe", "Dilim");
