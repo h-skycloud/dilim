@@ -85,6 +85,20 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
             ShowShelf(files);
             return;
         }
+        if (id == "compress" && files.All(f => Path.GetExtension(f).Equals(".pdf", StringComparison.OrdinalIgnoreCase)))
+        {
+            var shrink = new Views.Tools.PdfShrinkTool(files, loc);
+            shrink.Show();
+            shrink.Activate();
+            return;
+        }
+        if (id is "mergePDF" or "joinVideos")
+        {
+            var merge = new Views.Tools.MergeTool(id, files, loc, RunAsync);
+            merge.Show();
+            merge.Activate();
+            return;
+        }
         var tool = new ToolWindow(id, files, loc, RunAsync);
         tool.Show();
         tool.Activate();

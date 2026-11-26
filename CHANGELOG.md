@@ -10,6 +10,27 @@ one-line summaries in the user's language (a line per change; a language without
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 0.4.0
+
+<!-- update
+level: optional
+tr: PDF boyutunu düşür: Akıllı ya da Düzleştir, beş seviye, ölçülen boyut ve kalite, hedef boyut
+tr: Kaliteyi karşılaştır: aynı sayfanın önce ve sonra hali yan yana
+tr: PDF birleştir ve Videoları birleştir yeni pencerelerinde; sırayı küçük görsellerle düzenle
+en: Reduce PDF size: Smart or Flatten, five levels, measured size and quality, a target size
+en: Compare quality: the same part of a page before and after, side by side
+en: Merge PDFs and Join Videos in new windows; arrange the order with thumbnails
+-->
+
+- **Reduce PDF size:** pick Smart (only pictures are downsized; text and lines stay sharp and selectable) or Flatten
+  (every page becomes one picture, for drawing-heavy sheets), then one of five levels: Light, Print, Balanced, Screen,
+  Smallest. The size and quality shown are measured on your file, not estimated. Type a target size, or pick 5, 10, 20
+  or 25 MB, and the best quality that stays under it is chosen, between levels too. "Compare quality" shows the same
+  part of a page before and after.
+- **Merge PDFs and Join Videos** open in a new window: the files with their first page or a frame, in the order you
+  selected them, to rearrange before merging. Joined videos take their size and frame rate from the first clip; clips
+  of other shapes are fitted inside it, and clips with and without sound can be joined together.
+
 ## 0.3.1
 
 <!-- update

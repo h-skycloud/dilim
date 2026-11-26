@@ -16,6 +16,9 @@ public static class ToolEngine
 {
     public static bool HasFfmpeg => FfmpegConverter.Locate() is not null;
 
+    /// <summary>The ffmpeg the tools use, or null when it isn't installed.</summary>
+    public static string? FfmpegPath => FfmpegConverter.Locate()?.Ffmpeg;
+
     public static async Task<IReadOnlyList<string>> RunAsync(string id, IReadOnlyList<string> files, ToolRequest request,
         string outputDirectory, IProgress<double>? progress, CancellationToken ct)
     {
@@ -214,23 +217,33 @@ public static class ToolEngine
                 break;
             case "audioToVideo": args.AddRange(["-filter_complex", "[0:a]showwaves=s=1280x720:mode=cline:colors=0xF35B28:rate=30,format=yuv420p[v]", "-map", "[v]", "-map", "0:a:0", "-shortest"]); break;
             case "joinVideos":
-                var probes = new List<(double Duration, bool Audio, bool Video, int Width, int Height)> { info };
+                var probes = new List<MediaProbe> { info };
                 foreach (var file in files.Skip(1)) probes.Add(await ProbeAsync(tools.Ffprobe, file, ct));
                 if (probes.Any(p => !p.Video)) throw new ArgumentException("tool.error.unsupported");
-                // Normalize dimensions, time bases and sample rates. Require all clips to agree about an audio track.
-                if (probes.Any(p => p.Audio != audio)) throw new ArgumentException("tool.error.join_audio");
+                // The first clip is the canvas: its size (even, as H.264 needs) and frame rate. The others are fitted
+                // inside it without distortion. A clip without sound gets silence when any clip has sound.
+                var w = Math.Max(2, info.Width / 2 * 2);
+                var h = Math.Max(2, info.Height / 2 * 2);
+                var fps = info.FrameRate is > 1 and <= 120 ? N(info.FrameRate) : "30";
+                var withAudio = probes.Any(p => p.Audio);
                 var chains = new List<string>();
                 for (var i = 0; i < files.Count; i++)
                 {
-                    chains.Add($"[{i}:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,setpts=PTS-STARTPTS[v{i}]");
-                    if (audio) chains.Add($"[{i}:a]aformat=sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS[a{i}]");
+                    chains.Add($"[{i}:v]scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps={fps},format=yuv420p,setpts=PTS-STARTPTS[v{i}]");
+                    if (!withAudio) continue;
+                    chains.Add(probes[i].Audio
+                        ? $"[{i}:a]aformat=sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS[a{i}]"
+                        : $"anullsrc=channel_layout=stereo:sample_rate=48000,atrim=duration={N(Math.Max(0.04, probes[i].Duration))}[a{i}]");
                 }
-                chains.Add(string.Concat(Enumerable.Range(0, files.Count).Select(i => audio ? $"[v{i}][a{i}]" : $"[v{i}]")) + $"concat=n={files.Count}:v=1:a={(audio ? 1 : 0)}[v]" + (audio ? "[a]" : ""));
+                chains.Add(string.Concat(Enumerable.Range(0, files.Count).Select(i => withAudio ? $"[v{i}][a{i}]" : $"[v{i}]")) + $"concat=n={files.Count}:v=1:a={(withAudio ? 1 : 0)}[v]" + (withAudio ? "[a]" : ""));
                 args.AddRange(["-filter_complex", string.Join(';', chains), "-map", "[v]"]);
-                if (audio) args.AddRange(["-map", "[a]"]);
+                if (withAudio) args.AddRange(["-map", "[a]"]);
                 break;
             default: throw new ArgumentException("tool.error.unsupported");
         }
+        var total = info.Duration;
+        if (id == "joinVideos")
+            foreach (var file in files.Skip(1)) total += (await ProbeAsync(tools.Ffprobe, file, ct)).Duration;
         if (vf is not null) args.AddRange(["-vf", vf]);
         if (af is not null) args.AddRange(["-af", af]);
         if (Path.GetExtension(output) == ".mp4") args.AddRange(["-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p", "-c:a", "aac"]);
@@ -239,7 +252,7 @@ public static class ToolEngine
         try
         {
             var result = await FfmpegRunner.RunAsync(tools.Ffmpeg, args,
-                seconds => { if (info.Duration > 0) progress?.Report(Math.Clamp(seconds / info.Duration, 0, .99)); }, ct);
+                seconds => { if (total > 0) progress?.Report(Math.Clamp(seconds / total, 0, .99)); }, ct);
             if (result.ExitCode != 0) throw new InvalidOperationException(FfmpegRunner.Summarize(result.StandardError));
         }
         catch
@@ -250,17 +263,53 @@ public static class ToolEngine
         }
     }
 
-    private static async Task<(double Duration, bool Audio, bool Video, int Width, int Height)> ProbeAsync(string probe, string file, CancellationToken ct)
+    /// <summary>Duration, streams, size and frame rate of a media file, from ffprobe.</summary>
+    public static async Task<MediaProbe> ProbeAsync(string file, CancellationToken ct)
+    {
+        var tools = FfmpegConverter.Locate() ?? throw new InvalidOperationException("tool.error.ffmpeg");
+        return await ProbeAsync(tools.Ffprobe, file, ct);
+    }
+
+    private static async Task<MediaProbe> ProbeAsync(string probe, string file, CancellationToken ct)
     {
         var result = await ProcessRunner.RunAsync(probe, ["-v", "error", "-show_streams", "-show_format", "-of", "json", file], TimeSpan.FromSeconds(30), ct);
         if (result.ExitCode != 0) throw new InvalidOperationException(result.StandardError);
         using var doc = JsonDocument.Parse(result.StandardOutput);
         var streams = doc.RootElement.GetProperty("streams").EnumerateArray().ToArray();
-        var video = streams.FirstOrDefault(s => s.GetProperty("codec_type").GetString() == "video");
+        var video = streams.FirstOrDefault(s => s.GetProperty("codec_type").GetString() == "video"
+            && !(s.TryGetProperty("disposition", out var d) && d.TryGetProperty("attached_pic", out var pic) && pic.GetInt32() == 1));
         var hasVideo = video.ValueKind != JsonValueKind.Undefined;
-        var duration = doc.RootElement.GetProperty("format").TryGetProperty("duration", out var d)
-            && double.TryParse(d.GetString(), CultureInfo.InvariantCulture, out var seconds) ? seconds : 0;
-        return (duration, streams.Any(s => s.GetProperty("codec_type").GetString() == "audio"), hasVideo,
-            hasVideo ? video.GetProperty("width").GetInt32() : 0, hasVideo ? video.GetProperty("height").GetInt32() : 0);
+        var duration = doc.RootElement.GetProperty("format").TryGetProperty("duration", out var length)
+            && double.TryParse(length.GetString(), CultureInfo.InvariantCulture, out var seconds) ? seconds : 0;
+        var fps = hasVideo && video.TryGetProperty("r_frame_rate", out var rate) ? ParseRate(rate.GetString()) : 0;
+        var rotation = hasVideo ? Rotation(video) : 0;
+        int width = hasVideo ? video.GetProperty("width").GetInt32() : 0, height = hasVideo ? video.GetProperty("height").GetInt32() : 0;
+        // A phone video stored sideways plays upright: its displayed size is the turned one.
+        if (rotation is 90 or 270) (width, height) = (height, width);
+        return new MediaProbe(duration, streams.Any(s => s.GetProperty("codec_type").GetString() == "audio"), hasVideo, width, height, fps);
+    }
+
+    private static int Rotation(JsonElement stream)
+    {
+        if (stream.TryGetProperty("side_data_list", out var side))
+            foreach (var item in side.EnumerateArray())
+                if (item.TryGetProperty("rotation", out var r) && r.TryGetInt32(out var degrees))
+                    return ((degrees % 360) + 360) % 360;
+        if (stream.TryGetProperty("tags", out var tags) && tags.TryGetProperty("rotate", out var rotate)
+            && int.TryParse(rotate.GetString(), out var tagged))
+            return ((tagged % 360) + 360) % 360;
+        return 0;
+    }
+
+    private static double ParseRate(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return 0;
+        var parts = text.Split('/');
+        return parts.Length == 2 && double.TryParse(parts[0], CultureInfo.InvariantCulture, out var n)
+            && double.TryParse(parts[1], CultureInfo.InvariantCulture, out var d) && d > 0 ? n / d
+            : double.TryParse(text, CultureInfo.InvariantCulture, out var v) ? v : 0;
     }
 }
+
+/// <summary>What ffprobe says about a media file. Width and height are as displayed (rotation applied).</summary>
+public sealed record MediaProbe(double Duration, bool Audio, bool Video, int Width, int Height, double FrameRate);
