@@ -321,6 +321,13 @@ public sealed class RadialController(
             return;
         }
 
+        if (web is null && DilimService.OpensTool(preset) is { } opens)
+        {
+            Close(animate: false);
+            AppHost.Get<DilimService>().Show(opens, sources);
+            return;
+        }
+
         if (preset.IsTool)
         {
             var near = _window?.Position;

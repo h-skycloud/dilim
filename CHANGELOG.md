@@ -10,6 +10,26 @@ one-line summaries in the user's language (a line per change; a language without
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 1.0.1
+
+<!-- update
+level: recommended
+tr: PDF sıkıştırma artık PDF menüsünün ilk dilimi ve boyut düşürücüyü doğrudan açar
+tr: Yolları kopyala, Taşı, Paylaş, Terminal ve diğer hızlı araçlar yeni pencere tasarımında
+tr: Yolları kopyala: tam yol veya yalnız ad, satır ya da boşluk ayırıcı, tırnak ve önizleme
+en: Compress PDF is now the first slice of the PDF menu and opens the size reducer directly
+en: Copy paths, Move, Share, Terminal and the other quick tools use the new window design
+en: Copy paths: full path or name only, line or space separator, quotes and a preview
+-->
+
+- **Compress PDF** is the first slice of the PDF menu and opens the PDF size reducer with its levels and live preview.
+- The quick tools and file actions (Copy paths, Copy, Move, Share, Open Terminal, Add background, Remove audio, Split
+  PDF, Create PDF, Extract archive) open in the same card as every other tool, with the selected files and pictures of
+  them on top and only the settings each one has.
+- **Copy paths** can copy full paths or names only, one per line or separated by spaces, optionally in quotes, with a
+  preview of the text.
+- **Move** shows the chosen folder before moving; **Add background** offers its colours as swatches.
+
 ## 1.0.0
 
 <!-- update

@@ -649,4 +649,64 @@ public class ToolWindowsTests
 
         Assert.Equal([new Avalonia.Rect(10, 20, 30, 40)], Detection.Parse("[{\"x\":10,\"y\":20,\"w\":30,\"h\":40}]"));
     }
+
+    [AvaloniaFact]
+    public void Quick_tools_render_in_the_card_and_run_with_their_settings()
+    {
+        TestServices.EnsureInitialized("tr");
+        var loc = AppHost.Get<ILocalizer>();
+        (string Id, ToolRequest Request)? asked = null;
+        Task<IReadOnlyList<string>> Run(string id, IReadOnlyList<string> files, ToolRequest request, Window owner, IProgress<double> progress, CancellationToken ct)
+        {
+            asked = (id, request);
+            return Task.FromResult<IReadOnlyList<string>>([]);
+        }
+        var photo = Photo("Saydam.png", 400, 300);
+        var pdf = Pdf("Sınav belgesi.pdf", 3);
+        foreach (var id in QuickTool.Ids)
+        {
+            var files = id switch { "muteVideo" => [Video("Sessiz.mp4", "orange", "320x180")], "splitPDF" or "createPDF" => [pdf], "frameImage" => [photo], _ => new[] { photo, pdf } };
+            var window = new QuickTool(id, files, loc, Run);
+            window.Show();
+            Wait(() => Pictures(window) >= Math.Min(files.Length, id == "muteVideo" ? 1 : files.Length), 120);
+            RenderTests.Save(window, $"tool-quick-{id}-tr.png");
+            Assert.Contains(window.GetVisualDescendants().OfType<Button>(), b => b.Content as string == loc[$"tool.{id}.run"] && b.Classes.Contains("accent"));
+            if (id == "frameImage")
+            {
+                window.GetVisualDescendants().OfType<Swatches>().Single().Select("#F35B28");
+                Primary(window, loc["tool.frameImage.run"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                Wait(() => asked is not null);
+                Assert.Equal(("frameImage", "#F35B28"), (asked!.Value.Id, asked.Value.Request.Color));
+            }
+            if (id == "move")
+            {
+                Assert.False(Primary(window, loc["tool.move.run"]).IsEnabled);
+                window.SetDestination(Root);
+                Assert.True(Primary(window, loc["tool.move.run"]).IsEnabled);
+            }
+            window.Close();
+        }
+
+        var guide = new GuideWindow(loc);
+        guide.Show();
+        RenderTests.Pump();
+        RenderTests.Save(guide, "tool-guide-tr.png");
+        guide.Close();
+    }
+
+    [Fact]
+    public void Copy_paths_writes_the_chosen_form()
+    {
+        var files = new[] { Path.Combine("C:", "a", "Plan.pdf"), Path.Combine("C:", "b", "Kesit.dwg") };
+        Assert.Equal(string.Join(Environment.NewLine, files), QuickTool.PathsText(files, false, false, false));
+        Assert.Equal("\"Plan.pdf\" \"Kesit.dwg\"", QuickTool.PathsText(files, true, true, true));
+    }
+
+    [Fact]
+    public void Compress_pdf_slice_opens_the_size_reducer()
+    {
+        var presets = Dilim.Core.Presets.BuiltInData.CreatePresets();
+        Assert.Equal("compress", DilimService.OpensTool(presets.Single(p => p.Id == "compress-pdf")));
+        Assert.Null(DilimService.OpensTool(presets.Single(p => p.Id == "to-png")));
+    }
 }

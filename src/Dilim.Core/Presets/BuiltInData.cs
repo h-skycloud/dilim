@@ -359,7 +359,7 @@ public static class BuiltInData
             Id = "pdf", NameKey = "profile.pdf",
             Extensions = ["pdf"],
             PresetIds = [.. PdfDonut],
-            BackPresetIds = ["compress-pdf", "to-webp", "to-tiff", "to-html", "to-odt", "to-rtf", "to-azw3", "to-cbz", "zip-all"],
+            BackPresetIds = ["to-hwp", "to-webp", "to-tiff", "to-html", "to-odt", "to-rtf", "to-azw3", "to-cbz", "zip-all"],
         },
         new()
         {
@@ -395,6 +395,10 @@ public static class BuiltInData
     /// stays a preset to add in Settings → Toolbar.
     /// </summary>
     public static readonly IReadOnlyList<string> PdfDonut =
+        ["compress-pdf", "to-png", "to-jpg", "pdf-long-image", "to-docx", "pdf-slides", "to-txt", "to-md", "to-epub", "to-hwpx", "pdf-split", "merge-pdf"];
+
+    /// <summary>The PDF donut of schemas 18–30, before "Compress PDF" took the first slice (and "HWP" the back face).</summary>
+    public static readonly IReadOnlyList<string> PdfDonutBefore31 =
         ["to-png", "to-jpg", "pdf-long-image", "to-docx", "pdf-slides", "to-txt", "to-md", "to-epub", "to-hwpx", "to-hwp", "pdf-split", "merge-pdf"];
 
     /// <summary>The PDF donut of settings schema 9 to 17, which schema 18 replaces when the user never changed it.</summary>

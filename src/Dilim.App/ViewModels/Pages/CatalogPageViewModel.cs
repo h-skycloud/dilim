@@ -240,7 +240,9 @@ public sealed partial class CatalogPageViewModel : ObservableObject, IDisposable
             return;
         }
         Message = null;
-        if (preset.IsTool)
+        if (DilimService.OpensTool(preset) is { } opens)
+            AppHost.Get<DilimService>().Show(opens, Files);
+        else if (preset.IsTool)
         {
             if (preset.ToolId is { } tool) AppHost.Get<DilimService>().Show(tool, Files);
             else _windows.ShowCropOverlay(Files, preset.Clone());

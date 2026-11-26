@@ -72,6 +72,12 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
         return result;
     }
 
+    /// <summary>
+    /// A conversion preset that opens a tool's window from the donut instead of converting right away: "Compress PDF"
+    /// opens the PDF size reducer (the command line still converts with it).
+    /// </summary>
+    public static string? OpensTool(Preset preset) => preset.Id == "compress-pdf" ? "compress" : null;
+
     public void Show(string id, IReadOnlyList<string> files)
     {
         if (files.Count == 0) return;
@@ -112,12 +118,12 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
             merge.Activate();
             return;
         }
-        var tool = new ToolWindow(id, files, loc, RunAsync);
+        var tool = new Views.Tools.QuickTool(id, files, loc, RunAsync);
         tool.Show();
         tool.Activate();
     }
 
-    /// <summary>The redesigned window of a tool, or null for the ones still using the form.</summary>
+    /// <summary>The window of a tool with its own editor, or null for the quick ones (<see cref="Views.Tools.QuickTool"/>).</summary>
     private Window? NewToolWindow(string id, IReadOnlyList<string> files) => id switch
     {
         "changeVideoSpeed" => new Views.Tools.VideoSpeedTool(files, loc, RunAsync),
@@ -324,17 +330,8 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
 
     public void ShowGuide()
     {
-        var text = new TextBlock { Text = loc["pie.guide"], TextWrapping = TextWrapping.Wrap, FontSize = 16, LineHeight = 27 };
-        var window = new Window
-        {
-            Title = loc["pie.help"],
-            Width = 620,
-            Height = 600,
-            MinWidth = 400,
-            MinHeight = 360,
-            Content = new ScrollViewer { Content = text, Margin = new Avalonia.Thickness(28) },
-            WindowStartupLocation = WindowStartupLocation.CenterScreen
-        };
-        window.Show();
+        var guide = new Views.Tools.GuideWindow(loc);
+        guide.Show();
+        guide.Activate();
     }
 }
