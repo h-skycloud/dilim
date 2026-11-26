@@ -133,6 +133,9 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
         "redactImage" => new Views.Tools.RedactPhotoTool(files, loc, RunAsync),
         "redactVideo" => new Views.Tools.RedactVideoTool(files, loc, RunAsync),
         "createCollage" => new Views.Tools.CollageTool(files, loc),
+        "removeMetadata" => new Views.Tools.MetadataTool(files, loc),
+        "annotateImage" => new Views.Tools.AnnotateTool(files, loc),
+        "editImage" => new Views.Tools.EditPhotoTool(files, loc),
         "compress" when !files.All(f => Path.GetExtension(f).Equals(".pdf", StringComparison.OrdinalIgnoreCase)) => new Views.Tools.CompressTool(files, loc),
         _ => null,
     };

@@ -22,6 +22,7 @@ Push-Location $taskRoot
 try {
     Invoke-DilimChecked { dotnet publish src/Dilim.App -c Release -r win-x64 --self-contained true -p:DilimRelease=true -p:DebugType=None -p:DebugSymbols=false "-p:Version=$Version" "-p:DilimRepositoryUrl=$RepositoryUrl" -o $taskStage }
     Invoke-DilimChecked { dotnet publish src/Dilim.Share -c Release -r win-x64 --self-contained true -p:DebugType=None -p:DebugSymbols=false "-p:Version=$Version" -o (Join-Path $taskStage 'share') }
+    Invoke-DilimChecked { dotnet publish src/Dilim.Detect -c Release -r win-x64 --self-contained true -p:DebugType=None -p:DebugSymbols=false "-p:Version=$Version" -o (Join-Path $taskStage 'detect') }
     Invoke-DilimChecked { dotnet publish src/Dilim.Cli -c Release -r win-x64 --self-contained true -p:DebugType=None -p:DebugSymbols=false "-p:Version=$Version" -o $taskStage }
     New-Item -ItemType Directory -Path (Join-Path $taskStage 'cli') -Force | Out-Null
     Set-Content -LiteralPath (Join-Path $taskStage 'cli/dilim.cmd') -Value '@"%~dp0..\dilim-cli.exe" %*' -Encoding ascii

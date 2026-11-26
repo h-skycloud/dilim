@@ -60,6 +60,30 @@ public class RedactPhotoTool : MediaTool
         Style.Changed += i => { Canvas.Blur = i == 1; Colors.IsEnabled = i == 0; Canvas.Refresh(); };
         Colors.Changed += c => { Canvas.Fill = Color.Parse(c); Canvas.Refresh(); };
         Canvas.Changed += Update;
+        // Faces and text found on this computer by Windows: each becomes a box to check and adjust.
+        var detect = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        foreach (var faces in new[] { true, false })
+        {
+            var button = new Button { Content = loc[faces ? "tool.redact.faces" : "tool.redact.text"], IsEnabled = Detection.Available };
+            if (!Detection.Available) ToolTip.SetTip(button, loc["tool.redact.detect_unavailable"]);
+            button.Click += async (_, _) =>
+            {
+                button.IsEnabled = false;
+                Status = loc["tool.redact.detecting"];
+                try
+                {
+                    var found = await Detection.FindAsync(Files[0], faces);
+                    foreach (var area in found) Canvas.Boxes.Add(new CanvasBox { Area = Canvas.Clamp(area) });
+                    Status = loc.Format(found.Count == 0 ? "tool.redact.found_none" : "tool.redact.found", found.Count);
+                    Canvas.Refresh();
+                    Update();
+                }
+                catch (Exception ex) { Status = Message(ex); }
+                finally { button.IsEnabled = true; }
+            };
+            detect.Children.Add(button);
+        }
+        Extra.Children.Add(Row(loc["tool.redact.detect"], detect));
         Body = new StackPanel { Children = { Framed(Canvas), Row(loc["tool.redact.style"], Style, 18), Row(loc["tool.redact.color"], Colors), Extra, Note(loc["tool.redact.note"]) } };
         PrimaryText = loc["tool.redact.run"];
         SetSecondary(loc["tool.pdfshrink.reset"], () => { Canvas.Boxes.Clear(); Canvas.Select(null); Update(); });

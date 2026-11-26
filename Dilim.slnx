@@ -8,6 +8,7 @@
     <Project Path="src/Dilim.App/Dilim.App.csproj" />
     <Project Path="src/Dilim.Cli/Dilim.Cli.csproj" />
     <Project Path="src/Dilim.Setup/Dilim.Setup.csproj" />
+    <Project Path="src/Dilim.Detect/Dilim.Detect.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Dilim.Core.Tests/Dilim.Core.Tests.csproj" />

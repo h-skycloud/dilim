@@ -386,4 +386,22 @@
   <Style Selector="Button.swatch:disabled">
     <Setter Property="Opacity" Value="0.35" />
   </Style>
+  <Style Selector="Button.tool-pick">
+    <Setter Property="Width" Value="64" />
+    <Setter Property="Height" Value="44" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Button.tool-pick.on">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+  </Style>
+  <Style Selector="Button.tool-pick.on /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+  </Style>
 </Styles>

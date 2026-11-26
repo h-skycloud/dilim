@@ -131,6 +131,9 @@ public abstract class ToolShell : Window
     /// <summary>The tool's own controls stop taking input while it runs.</summary>
     protected virtual void OnRunningChanged(bool running) => _body.IsEnabled = !running;
 
+    /// <summary>Runs the tool as the main button does (a second action, such as "Remove All", that also saves).</summary>
+    protected Task StartAsync() => _running is null ? OnPrimaryAsync() : Task.CompletedTask;
+
     private async Task OnPrimaryAsync()
     {
         if (_running is not null)

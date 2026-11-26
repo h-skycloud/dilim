@@ -591,4 +591,62 @@ public class ToolWindowsTests
         using (var image = new ImageMagick.MagickImage(made!)) Assert.Equal((2048u, 1152u), (image.Width, image.Height));
         collage.Close();
     }
+
+    [AvaloniaFact]
+    public void Metadata_annotate_and_edit_photo_windows_work()
+    {
+        TestServices.EnsureInitialized("tr");
+        var loc = AppHost.Get<ILocalizer>();
+        var photo = Path.Combine(Root, "Tren.jpg");
+        Directory.CreateDirectory(Root);
+        using (var image = new ImageMagick.MagickImage("plasma:skyblue-seagreen", 1199, 1600))
+        {
+            var exif = new ImageMagick.ExifProfile();
+            exif.SetValue(ImageMagick.ExifTag.Make, "Dilim Kamera");
+            exif.SetValue(ImageMagick.ExifTag.Artist, "HGK");
+            image.SetProfile(exif);
+            image.Write(photo);
+        }
+
+        // Metadata: change one field, remove another, save.
+        var meta = new MetadataTool([photo], loc);
+        meta.Show();
+        Wait(() => meta.GetVisualDescendants().OfType<TextBox>().Any(t => t.Text == "Dilim Kamera"));
+        meta.GetVisualDescendants().OfType<TextBox>().Single(t => t.Text == "HGK").Text = "Dilim";
+        Wait(() => false, 20);
+        RenderTests.Save(meta, "tool-metadata-tr.png");
+        Primary(meta, loc["common.save"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        string? saved = null;
+        Wait(() => (saved = Directory.Exists(Path.Combine(Root, "Dilim")) ? Directory.EnumerateFiles(Path.Combine(Root, "Dilim"), "Tren*").FirstOrDefault() : null) is not null, 400);
+        Wait(() => false, 20);
+        using (var image = new ImageMagick.MagickImage(saved!)) Assert.Equal("Dilim", image.GetExifProfile()!.GetValue(ImageMagick.ExifTag.Artist)!.Value);
+        meta.Close();
+
+        // Annotate: an arrow, a number and a text added programmatically, then saved.
+        var annotate = new AnnotateTool([photo], loc);
+        annotate.Show();
+        var canvas = annotate.GetVisualDescendants().OfType<AnnotateCanvas>().Single();
+        Wait(() => canvas.SourceSize.Width > 0);
+        canvas.Annotations.Add(new Annotation { Kind = AnnotationKind.Arrow, Points = [900, 300, 600, 700], Width = 10 });
+        canvas.Annotations.Add(new Annotation { Kind = AnnotationKind.Number, Points = [300, 300], Number = 1, Width = 40 });
+        canvas.Annotations.Add(new Annotation { Kind = AnnotationKind.Text, Points = [200, 1300], Text = "Peron 2", Width = 70, Color = "#FFFFFF" });
+        canvas.Annotations.Add(new Annotation { Kind = AnnotationKind.Magnifier, Points = [700, 1000, 820, 1000], Width = 8 });
+        canvas.InvalidateVisual();
+        Wait(() => false, 30);
+        RenderTests.Save(annotate, "tool-annotate-tr.png");
+        annotate.Close();
+
+        // Edit photo: exposure up, warmer; the preview follows.
+        var edit = new EditPhotoTool([photo], loc);
+        edit.Show();
+        Wait(() => edit.GetVisualDescendants().OfType<Image>().Any(i => i.Source is not null), 400);
+        var sliders = edit.GetVisualDescendants().OfType<Slider>().ToList();
+        sliders[0].Value = 0.7;
+        sliders[8].Value = 50;
+        Wait(() => false, 120);
+        RenderTests.Save(edit, "tool-edit-photo-tr.png");
+        edit.Close();
+
+        Assert.Equal([new Avalonia.Rect(10, 20, 30, 40)], Detection.Parse("[{\"x\":10,\"y\":20,\"w\":30,\"h\":40}]"));
+    }
 }
