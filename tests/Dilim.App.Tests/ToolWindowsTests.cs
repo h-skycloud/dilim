@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -245,5 +246,407 @@ public class ToolWindowsTests
         {
             if (dark) theme.Apply(new ThemeSettings(), language);
         }
+    }
+
+    /// <summary>A photo-like picture (as from a phone camera), w × h.</summary>
+    private static string Photo(string name, int w = 1600, int h = 1066)
+    {
+        Directory.CreateDirectory(Root);
+        var path = Path.Combine(Root, name);
+        using var image = new ImageMagick.MagickImage("plasma:skyblue-seagreen", (uint)w, (uint)h);
+        new ImageMagick.Drawing.Drawables().FillColor(new ImageMagick.MagickColor("#E8873A")).Circle(w * 0.62, h * 0.45, w * 0.62, h * 0.45 + h * 0.18)
+            .FillColor(new ImageMagick.MagickColor("#2F4F2F")).Rectangle(0, h * 0.8, w, h).Draw(image);
+        image.Quality = 90;
+        image.Write(path);
+        return path;
+    }
+
+    [AvaloniaTheory]
+    [InlineData("tr", false)]
+    [InlineData("tr", true)]
+    [InlineData("en", false)]
+    public void Crop_image_keeps_a_ratio_and_saves_the_box(string language, bool dark)
+    {
+        TestServices.EnsureInitialized(language);
+        var theme = AppHost.Get<ThemeService>();
+        try
+        {
+            if (dark) theme.Apply(new ThemeSettings { Mode = ThemeMode.Dark, CornerRadius = 16 }, language);
+            var file = Photo($"Deniz feneri {language}{dark}.jpg");
+            var preset = AppHost.Get<UserDataStore>().FindPreset("tool-crop")!.Clone();
+            var window = new CropImageTool([file], preset, AppHost.Get<ILocalizer>());
+            window.Show();
+            var canvas = window.GetVisualDescendants().OfType<BoxCanvas>().Single();
+            for (var i = 0; i < 200 && canvas.Boxes.Count == 0; i++) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(20); }
+            Assert.Equal(new Avalonia.PixelSize(1600, 1066), canvas.SourceSize);
+            // 1:1 — the largest centred square.
+            window.GetVisualDescendants().OfType<Segmented>().Single().Selected = 1;
+            Settle();
+            Assert.Equal(new Avalonia.Rect(267, 0, 1066, 1066), canvas.Boxes[0].Area);
+            RenderTests.Save(window, $"tool-crop-image-{language}{(dark ? "-dark" : "")}.png");
+
+            if (language == "tr" && !dark)
+            {
+                var primary = window.GetVisualDescendants().OfType<Button>().Single(b => b.Content as string == AppHost.Get<ILocalizer>()["tool.crop.apply"]);
+                primary.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                string? saved = null;
+                for (var i = 0; i < 300 && saved is null; i++)
+                {
+                    Dispatcher.UIThread.RunJobs(); Thread.Sleep(20);
+                    saved = Directory.EnumerateFiles(Root, "Deniz feneri trFalse*", SearchOption.AllDirectories).FirstOrDefault(f => f != file);
+                }
+                Assert.NotNull(saved);
+                for (var i = 0; i < 50; i++) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(20); }
+                using var result = new ImageMagick.MagickImage(saved);
+                Assert.Equal((1066u, 1066u), (result.Width, result.Height));
+            }
+            window.Close();
+        }
+        finally
+        {
+            if (dark) theme.Apply(new ThemeSettings(), language);
+        }
+    }
+
+    private static string TestClip(string name, double seconds = 4)
+    {
+        Directory.CreateDirectory(Root);
+        var path = Path.Combine(Root, name);
+        var ffmpeg = ToolEngine.FfmpegPath ?? throw new InvalidOperationException("FFmpeg is needed for this test");
+        var made = Task.Run(() => ProcessRunner.RunAsync(ffmpeg, ["-v", "error", "-y", "-f", "lavfi", "-i", $"testsrc2=s=640x360:r=25:d={seconds}",
+            "-f", "lavfi", "-i", $"sine=frequency=330:duration={seconds}", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", path],
+            TimeSpan.FromSeconds(60), CancellationToken.None)).GetAwaiter().GetResult();
+        Assert.Equal(0, made.ExitCode);
+        return path;
+    }
+
+    private static void Wait(Func<bool> until, int tries = 400)
+    {
+        for (var i = 0; i < tries && !until(); i++) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(25); }
+        RenderTests.Pump();
+    }
+
+    private static void Press(Window window, string text) =>
+        window.GetVisualDescendants().OfType<Button>().First(b => b.Content as string == text || (b.Content as StackPanel)?.Children.OfType<TextBlock>().Any(t => t.Text == text) == true)
+            .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+
+    private static Button Primary(Window window, string text) =>
+        window.GetVisualDescendants().OfType<Button>().Single(b => b.Content as string == text && b.Classes.Contains("accent"));
+
+    [AvaloniaFact]
+    public void Video_tools_render_and_ask_the_engine_for_what_was_chosen()
+    {
+        TestServices.EnsureInitialized("tr");
+        var loc = AppHost.Get<ILocalizer>();
+        var clip = TestClip("Fener.mp4");
+        ToolRequest? asked = null;
+        string? askedId = null;
+        Task<IReadOnlyList<string>> Run(string id, IReadOnlyList<string> files, ToolRequest request, Window owner, IProgress<double> progress, CancellationToken ct)
+        {
+            (askedId, asked) = (id, request);
+            return Task.FromResult<IReadOnlyList<string>>([]);
+        }
+
+        // Speed: 2× from its stops.
+        var speed = new VideoSpeedTool([clip], loc, Run);
+        speed.Show();
+        var preview = speed.GetVisualDescendants().OfType<VideoPreview>().Single();
+        Wait(() => preview.Info is not null);
+        Wait(() => false, 40);
+        speed.GetVisualDescendants().OfType<Slider>().First(s => s.Classes.Contains("level")).Value = 4;
+        RenderTests.Save(speed, "tool-video-speed-tr.png");
+        Primary(speed, loc["tool.crop.apply"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Wait(() => asked is not null);
+        Assert.Equal(("changeVideoSpeed", 2.0), (askedId, asked!.Speed));
+        speed.Close();
+
+        // Frames: two added.
+        asked = null;
+        var frames = new VideoFramesTool([clip], loc, Run);
+        frames.Show();
+        preview = frames.GetVisualDescendants().OfType<VideoPreview>().Single();
+        Wait(() => preview.Info is not null);
+        Press(frames, loc["tool.frames.add"]); Wait(() => false, 20);
+        preview.Seek(1.6); Wait(() => false, 20);
+        Press(frames, loc["tool.frames.add"]); Wait(() => false, 40);
+        RenderTests.Save(frames, "tool-video-frames-tr.png");
+        Primary(frames, loc.Format("tool.frames.save", 2)).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Wait(() => asked is not null);
+        Assert.Equal(2, asked!.Times.Length);
+        frames.Close();
+
+        // Crop: 1:1 centred.
+        asked = null;
+        var crop = new CropVideoTool([clip], loc, Run);
+        crop.Show();
+        preview = crop.GetVisualDescendants().OfType<VideoPreview>().Single();
+        Wait(() => preview.Canvas.Boxes.Count > 0);
+        crop.GetVisualDescendants().OfType<Segmented>().Single().Selected = 1;
+        Wait(() => false, 40);
+        RenderTests.Save(crop, "tool-video-crop-tr.png");
+        Primary(crop, loc["tool.crop.apply"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Wait(() => asked is not null);
+        Assert.Equal((140, 0, 360, 360), (asked!.X, asked.Y, asked.Width, asked.Height));
+        crop.Close();
+
+        // Trim: typed times.
+        asked = null;
+        var trim = new TrimVideoTool([clip], loc, Run);
+        trim.Show();
+        preview = trim.GetVisualDescendants().OfType<VideoPreview>().Single();
+        Wait(() => preview.Info is not null);
+        var boxes = trim.GetVisualDescendants().OfType<TextBox>().ToList();
+        void Type(TextBox box, string text)
+        {
+            box.Focus(); box.Text = text;
+            trim.KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
+            Wait(() => false, 5);
+        }
+        Type(boxes[0], "0:00.50");
+        Type(boxes[1], "3");
+        Wait(() => trim.GetVisualDescendants().OfType<Filmstrip>().Single().GetType() is not null, 60);
+        RenderTests.Save(trim, "tool-video-trim-tr.png");
+        Primary(trim, loc["tool.crop.apply"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Wait(() => asked is not null);
+        Assert.Equal((0.5, 3.0), (asked!.Start, asked.End));
+        trim.Close();
+
+        // Split: three equal parts.
+        asked = null;
+        var split = new SplitVideoTool([clip], loc, Run);
+        split.Show();
+        preview = split.GetVisualDescendants().OfType<VideoPreview>().Single();
+        Wait(() => preview.Info is not null);
+        split.GetVisualDescendants().OfType<NumericUpDown>().Single().Value = 3;
+        Press(split, loc["tool.split.set"]);
+        Wait(() => false, 60);
+        RenderTests.Save(split, "tool-video-split-tr.png");
+        Primary(split, loc["tool.split.run"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Wait(() => asked is not null);
+        Assert.Equal(2, asked!.Times.Length);
+        split.Close();
+    }
+
+    private static string Voice(string name)
+    {
+        Directory.CreateDirectory(Root);
+        var path = Path.Combine(Root, name);
+        var ffmpeg = ToolEngine.FfmpegPath ?? throw new InvalidOperationException("FFmpeg is needed for this test");
+        var made = Task.Run(() => ProcessRunner.RunAsync(ffmpeg, ["-v", "error", "-y", "-f", "lavfi", "-i",
+            "aevalsrc='0.6*sin(2*PI*300*t)*(between(t,0.5,1.1)+between(t,1.5,2.1))|0.3*sin(2*PI*300*t)*(between(t,0.5,1.1)+between(t,1.5,2.1))':s=44100:d=2.5",
+            "-c:a", "pcm_s16le", path], TimeSpan.FromSeconds(30), CancellationToken.None)).GetAwaiter().GetResult();
+        Assert.Equal(0, made.ExitCode);
+        return path;
+    }
+
+    [AvaloniaFact]
+    public void Audio_tools_render_and_ask_the_engine_for_what_was_chosen()
+    {
+        TestServices.EnsureInitialized("tr");
+        var loc = AppHost.Get<ILocalizer>();
+        var voice = Voice("Duraklamalı ses.wav");
+        ToolRequest? asked = null;
+        Task<IReadOnlyList<string>> Run(string id, IReadOnlyList<string> files, ToolRequest request, Window owner, IProgress<double> progress, CancellationToken ct)
+        {
+            asked = request;
+            return Task.FromResult<IReadOnlyList<string>>([]);
+        }
+        void Go(Window w, string text) { asked = null; Primary(w, text).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Wait(() => asked is not null); }
+        bool Drawn(Window w) => w.GetVisualDescendants().OfType<WaveformView>().All(v => v.Peaks.Length > 0);
+
+        var trim = new TrimAudioTool([voice], loc, Run);
+        trim.Show();
+        Wait(() => Drawn(trim));
+        trim.GetVisualDescendants().OfType<CheckBox>().Single().IsChecked = true;
+        Wait(() => false, 20);
+        RenderTests.Save(trim, "tool-audio-trim-tr.png");
+        Go(trim, loc["tool.crop.apply"]);
+        Assert.True(asked!.TrimSilence);
+        Assert.Equal(2.5, asked.End, 2);
+        trim.Close();
+
+        var channels = new AudioChannelsTool([voice], loc, Run);
+        channels.Show();
+        Wait(() => Drawn(channels));
+        channels.GetVisualDescendants().OfType<Segmented>().Single().Selected = 0;
+        channels.GetVisualDescendants().OfType<Slider>().First().Value = 50;
+        Wait(() => false, 20);
+        RenderTests.Save(channels, "tool-audio-channels-tr.png");
+        Go(channels, loc["tool.crop.apply"]);
+        Assert.Equal((1, 0.5, 1.0), (asked!.Channels, asked.LeftVolume, asked.RightVolume));
+        channels.Close();
+
+        var normalize = new NormalizeTool([voice], loc, Run);
+        normalize.Show();
+        Wait(() => Drawn(normalize) && normalize.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.StartsWith("Giriş:", StringComparison.Ordinal) == true));
+        normalize.GetVisualDescendants().OfType<Slider>().First().Value = -20;
+        Wait(() => false, 20);
+        RenderTests.Save(normalize, "tool-audio-normalize-tr.png");
+        Go(normalize, loc["tool.normalize.run"]);
+        Assert.Equal(-20, asked!.TargetLufs);
+        normalize.Close();
+
+        var visual = new VisualizerTool([voice], loc, Run);
+        visual.Show();
+        visual.GetVisualDescendants().OfType<Segmented>().Last().Selected = 1;
+        Wait(() => visual.GetVisualDescendants().OfType<Image>().Any(i => i.Source is not null));
+        Wait(() => false, 40);
+        RenderTests.Save(visual, "tool-audio-visualizer-tr.png");
+        Go(visual, loc["tool.visual.run"]);
+        Assert.Equal(("waveform", "9:16"), (asked!.VisualStyle, asked.Shape));
+        visual.Close();
+
+        var bleep = new BleepTool([voice], loc, Run);
+        bleep.Show();
+        Wait(() => Drawn(bleep));
+        var lane = bleep.GetVisualDescendants().OfType<BleepLane>().Single();
+        lane.Ranges.Add((0.6, 0.9)); lane.Ranges.Add((1.6, 1.9));
+        lane.InvalidateVisual();
+        Wait(() => false, 20);
+        var update = typeof(BleepTool).GetMethod("Update", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        update.Invoke(bleep, null);
+        Wait(() => false, 20);
+        RenderTests.Save(bleep, "tool-audio-bleep-tr.png");
+        Go(bleep, loc["tool.bleep.run"]);
+        Assert.Equal([0.6, 0.9, 1.6, 1.9], asked!.Ranges);
+        bleep.Close();
+    }
+
+    [AvaloniaFact]
+    public void Redact_compress_and_collage_windows_work()
+    {
+        TestServices.EnsureInitialized("tr");
+        var loc = AppHost.Get<ILocalizer>();
+        ToolRequest? asked = null;
+        Task<IReadOnlyList<string>> Run(string id, IReadOnlyList<string> files, ToolRequest request, Window owner, IProgress<double> progress, CancellationToken ct)
+        {
+            asked = request;
+            return Task.FromResult<IReadOnlyList<string>>([]);
+        }
+        void Go(Window w, string text) { asked = null; Primary(w, text).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Wait(() => asked is not null); }
+
+        // Photo: two boxes, blurred.
+        var photo = Photo("Aile.jpg");
+        var redact = new RedactPhotoTool([photo], loc, Run);
+        redact.Show();
+        var canvas = redact.GetVisualDescendants().OfType<BoxCanvas>().Single();
+        Wait(() => canvas.SourceSize.Width > 0);
+        canvas.Boxes.Add(new CanvasBox { Area = new Avalonia.Rect(200, 150, 300, 200) });
+        canvas.Boxes.Add(new CanvasBox { Area = new Avalonia.Rect(900, 500, 250, 180) });
+        canvas.Select(canvas.Boxes[0]);
+        redact.GetVisualDescendants().OfType<Segmented>().Single().Selected = 1;
+        typeof(RedactPhotoTool).GetMethod("Update", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(redact, null);
+        Wait(() => false, 40);
+        RenderTests.Save(redact, "tool-redact-photo-tr.png");
+        Go(redact, loc["tool.redact.run"]);
+        Assert.Equal(8, asked!.Boxes.Length);
+        Assert.True(asked.Blur);
+        redact.Close();
+
+        // Video: a box drawn on it gets a lane from the playhead to the end.
+        var clip = TestClip("Aile.mp4");
+        var video = new RedactVideoTool([clip], loc, Run);
+        video.Show();
+        var preview = video.GetVisualDescendants().OfType<VideoPreview>().Single();
+        Wait(() => preview.Info is not null);
+        preview.Seek(1);
+        Wait(() => false, 20);
+        preview.Canvas.Boxes.Add(new CanvasBox { Area = new Avalonia.Rect(100, 80, 160, 120) });
+        typeof(BoxCanvas).GetField("Changed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(preview.Canvas);
+        var changed = (MulticastDelegate?)typeof(BoxCanvas).GetField("Changed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(preview.Canvas);
+        changed!.DynamicInvoke();
+        Wait(() => video.GetVisualDescendants().OfType<RangeBar>().Any(), 100);
+        Wait(() => false, 40);
+        RenderTests.Save(video, "tool-redact-video-tr.png");
+        Go(video, loc["tool.redact.run"]);
+        Assert.Equal(1.0, asked!.Ranges[0], 1);
+        Assert.Equal(4.0, asked.Ranges[1], 1);
+        video.Close();
+
+        // Compress: a target size.
+        var compress = new CompressTool([Photo("Portakal.png", 1600, 1200)], loc);
+        compress.Show();
+        compress.GetVisualDescendants().OfType<CheckBox>().Single().IsChecked = true;
+        compress.GetVisualDescendants().OfType<TextBox>().First(t => t.Text == "5").Text = "0,2";
+        Wait(() => false, 20);
+        RenderTests.Save(compress, "tool-compress-tr.png");
+        Primary(compress, loc["tool.compress.run"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Wait(() => compress.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text?.Contains("küçük)") == true), 600);
+        var saved = Directory.EnumerateFiles(Path.Combine(Root, "Dilim"), "Portakal*").Single();
+        Assert.True(new FileInfo(saved).Length <= 0.2 * 1024 * 1024);
+        compress.Close();
+
+        // Collage: featured, 16:9.
+        var collage = new CollageTool([Photo("1.jpg"), Photo("2.jpg", 800, 1200), Photo("3.jpg")], loc);
+        collage.Show();
+        var combos = collage.GetVisualDescendants().OfType<ComboBox>().ToList();
+        combos[0].SelectedIndex = 3; combos[1].SelectedIndex = 2;
+        Wait(() => collage.GetVisualDescendants().OfType<Image>().Any(i => i.Source is not null && i.Bounds.Height > 200), 400);
+        Wait(() => false, 60);
+        RenderTests.Save(collage, "tool-collage-tr.png");
+        Primary(collage, loc["tool.collage.run"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        string? made = null;
+        Wait(() => (made = Directory.EnumerateFiles(Path.Combine(Root, "Dilim"), "Kolaj*").FirstOrDefault()) is not null, 600);
+        Wait(() => false, 40);
+        using (var image = new ImageMagick.MagickImage(made!)) Assert.Equal((2048u, 1152u), (image.Width, image.Height));
+        collage.Close();
+    }
+
+    [AvaloniaFact]
+    public void Metadata_annotate_and_edit_photo_windows_work()
+    {
+        TestServices.EnsureInitialized("tr");
+        var loc = AppHost.Get<ILocalizer>();
+        var photo = Path.Combine(Root, "Tren.jpg");
+        Directory.CreateDirectory(Root);
+        using (var image = new ImageMagick.MagickImage("plasma:skyblue-seagreen", 1199, 1600))
+        {
+            var exif = new ImageMagick.ExifProfile();
+            exif.SetValue(ImageMagick.ExifTag.Make, "Dilim Kamera");
+            exif.SetValue(ImageMagick.ExifTag.Artist, "HGK");
+            image.SetProfile(exif);
+            image.Write(photo);
+        }
+
+        // Metadata: change one field, remove another, save.
+        var meta = new MetadataTool([photo], loc);
+        meta.Show();
+        Wait(() => meta.GetVisualDescendants().OfType<TextBox>().Any(t => t.Text == "Dilim Kamera"));
+        meta.GetVisualDescendants().OfType<TextBox>().Single(t => t.Text == "HGK").Text = "Dilim";
+        Wait(() => false, 20);
+        RenderTests.Save(meta, "tool-metadata-tr.png");
+        Primary(meta, loc["common.save"]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        string? saved = null;
+        Wait(() => (saved = Directory.Exists(Path.Combine(Root, "Dilim")) ? Directory.EnumerateFiles(Path.Combine(Root, "Dilim"), "Tren*").FirstOrDefault() : null) is not null, 400);
+        Wait(() => false, 20);
+        using (var image = new ImageMagick.MagickImage(saved!)) Assert.Equal("Dilim", image.GetExifProfile()!.GetValue(ImageMagick.ExifTag.Artist)!.Value);
+        meta.Close();
+
+        // Annotate: an arrow, a number and a text added programmatically, then saved.
+        var annotate = new AnnotateTool([photo], loc);
+        annotate.Show();
+        var canvas = annotate.GetVisualDescendants().OfType<AnnotateCanvas>().Single();
+        Wait(() => canvas.SourceSize.Width > 0);
+        canvas.Annotations.Add(new Annotation { Kind = AnnotationKind.Arrow, Points = [900, 300, 600, 700], Width = 10 });
+        canvas.Annotations.Add(new Annotation { Kind = AnnotationKind.Number, Points = [300, 300], Number = 1, Width = 40 });
+        canvas.Annotations.Add(new Annotation { Kind = AnnotationKind.Text, Points = [200, 1300], Text = "Peron 2", Width = 70, Color = "#FFFFFF" });
+        canvas.Annotations.Add(new Annotation { Kind = AnnotationKind.Magnifier, Points = [700, 1000, 820, 1000], Width = 8 });
+        canvas.InvalidateVisual();
+        Wait(() => false, 30);
+        RenderTests.Save(annotate, "tool-annotate-tr.png");
+        annotate.Close();
+
+        // Edit photo: exposure up, warmer; the preview follows.
+        var edit = new EditPhotoTool([photo], loc);
+        edit.Show();
+        Wait(() => edit.GetVisualDescendants().OfType<Image>().Any(i => i.Source is not null), 400);
+        var sliders = edit.GetVisualDescendants().OfType<Slider>().ToList();
+        sliders[0].Value = 0.7;
+        sliders[8].Value = 50;
+        Wait(() => false, 120);
+        RenderTests.Save(edit, "tool-edit-photo-tr.png");
+        edit.Close();
+
+        Assert.Equal([new Avalonia.Rect(10, 20, 30, 40)], Detection.Parse("[{\"x\":10,\"y\":20,\"w\":30,\"h\":40}]"));
     }
 }

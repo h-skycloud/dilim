@@ -29,7 +29,6 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
     internal FormatRequestNoticeWindow? FormatRequestNotice => _formatRequestNotice;
 
-    private CropOverlayWindow? _cropOverlay;
 
     public MainWindow? Main => _main;
 
@@ -38,20 +37,10 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     {
         if (files.Count == 0)
             return;
-        _cropOverlay?.Close();
-        var store = services.GetRequiredService<UserDataStore>();
-        var log = services.GetService<ILogger<CropOverlayViewModel>>();
-        var vm = new CropOverlayViewModel(files, preset, loc, store, log);
-        var win = new CropOverlayWindow { DataContext = vm };
-        win.PositionOnScreen(near);
-        win.Closed += (_, _) =>
-        {
-            if (_cropOverlay == win)
-                _cropOverlay = null;
-        };
-        _cropOverlay = win;
-        win.Show();
-        win.Activate();
+        // The crop window of the tools: a box to drag, ratios and exact pixels.
+        var tool = new Views.Tools.CropImageTool(files, preset, loc);
+        tool.Show();
+        tool.Activate();
     }
 
     /// <summary>

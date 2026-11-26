@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Finds faces and text in a picture with what Windows itself ships (Windows.Media.FaceAnalysis and Windows.Media.Ocr),
+    on this computer, without a model to download. Dilim runs it as a helper: "Dilim.Detect.exe faces|text <picture>"
+    prints the boxes as JSON, in the upright picture's pixels.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationIcon>../Dilim.App/Assets/Icons/dilim.ico</ApplicationIcon>
+  </PropertyGroup>
+</Project>

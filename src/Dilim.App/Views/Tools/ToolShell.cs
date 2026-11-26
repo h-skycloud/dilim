@@ -131,6 +131,9 @@ public abstract class ToolShell : Window
     /// <summary>The tool's own controls stop taking input while it runs.</summary>
     protected virtual void OnRunningChanged(bool running) => _body.IsEnabled = !running;
 
+    /// <summary>Runs the tool as the main button does (a second action, such as "Remove All", that also saves).</summary>
+    protected Task StartAsync() => _running is null ? OnPrimaryAsync() : Task.CompletedTask;
+
     private async Task OnPrimaryAsync()
     {
         if (_running is not null)
@@ -221,6 +224,29 @@ public abstract class ToolShell : Window
         label.Classes.Add("tool-label");
         return label;
     }
+
+    /// <summary>A setting on one line: its name on the left, the control on the right ("Style    Solid | Blur").</summary>
+    protected static Grid Row(string label, Control control, double top = 14, bool stretch = false)
+    {
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), Margin = new Thickness(0, top, 0, 0) };
+        var name = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0) };
+        name.Classes.Add("muted");
+        grid.Children.Add(name);
+        control.HorizontalAlignment = stretch ? HorizontalAlignment.Stretch : HorizontalAlignment.Right;
+        control.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(control, 1);
+        grid.Children.Add(control);
+        return grid;
+    }
+
+    /// <summary>A preview (picture, video, waveform) in a rounded dark frame, as in every tool.</summary>
+    protected static Border Framed(Control content) => new() { Child = content, CornerRadius = new CornerRadius(18), ClipToBounds = true };
+
+    /// <summary>A thin rule between sections.</summary>
+    protected static Border Rule() => new Border { Height = 1, Margin = new Thickness(0, 18, 0, 4) }.Also(b => b.Classes.Add("rule"));
+
+    /// <summary>Turns a localized error ("tool.error.*") or exception into text for the footer.</summary>
+    protected string Message(Exception ex) => ex.Message.StartsWith("tool.", StringComparison.Ordinal) || ex.Message.StartsWith("error.", StringComparison.Ordinal) ? Loc[ex.Message] : ex.Message;
 
     /// <summary>A muted note under a control.</summary>
     protected static TextBlock Note(string text)

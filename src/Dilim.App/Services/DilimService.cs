@@ -92,6 +92,12 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
             shrink.Activate();
             return;
         }
+        if (NewToolWindow(id, files) is { } toolWindow)
+        {
+            toolWindow.Show();
+            toolWindow.Activate();
+            return;
+        }
         if (id == "organizePDF")
         {
             var organize = new Views.Tools.PdfOrganizeTool(files.Where(f => Path.GetExtension(f).Equals(".pdf", StringComparison.OrdinalIgnoreCase)).ToArray() is { Length: > 0 } pdfs ? pdfs : files, loc);
@@ -110,6 +116,29 @@ public sealed class DilimService(ILocalizer loc, WindowService windows, Conversi
         tool.Show();
         tool.Activate();
     }
+
+    /// <summary>The redesigned window of a tool, or null for the ones still using the form.</summary>
+    private Window? NewToolWindow(string id, IReadOnlyList<string> files) => id switch
+    {
+        "changeVideoSpeed" => new Views.Tools.VideoSpeedTool(files, loc, RunAsync),
+        "videoSnapshots" => new Views.Tools.VideoFramesTool(files, loc, RunAsync),
+        "cropVideo" => new Views.Tools.CropVideoTool(files, loc, RunAsync),
+        "trimVideo" => new Views.Tools.TrimVideoTool(files, loc, RunAsync),
+        "splitVideo" => new Views.Tools.SplitVideoTool(files, loc, RunAsync),
+        "trimAudio" => new Views.Tools.TrimAudioTool(files, loc, RunAsync),
+        "audioChannels" => new Views.Tools.AudioChannelsTool(files, loc, RunAsync),
+        "normalizeAudio" => new Views.Tools.NormalizeTool(files, loc, RunAsync),
+        "audioToVideo" => new Views.Tools.VisualizerTool(files, loc, RunAsync),
+        "redactAudio" => new Views.Tools.BleepTool(files, loc, RunAsync),
+        "redactImage" => new Views.Tools.RedactPhotoTool(files, loc, RunAsync),
+        "redactVideo" => new Views.Tools.RedactVideoTool(files, loc, RunAsync),
+        "createCollage" => new Views.Tools.CollageTool(files, loc),
+        "removeMetadata" => new Views.Tools.MetadataTool(files, loc),
+        "annotateImage" => new Views.Tools.AnnotateTool(files, loc),
+        "editImage" => new Views.Tools.EditPhotoTool(files, loc),
+        "compress" when !files.All(f => Path.GetExtension(f).Equals(".pdf", StringComparison.OrdinalIgnoreCase)) => new Views.Tools.CompressTool(files, loc),
+        _ => null,
+    };
 
     public JobViewModel? StartConversion(string id, IReadOnlyList<string> files, ToolRequest? request = null)
     {

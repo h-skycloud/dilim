@@ -83,8 +83,25 @@ public static class ToolEngine
             var format = ProfileSelector.DetectFormats([file]).FirstOrDefault();
             if (format?.Category is FormatCategory.Video or FormatCategory.Audio)
             {
-                var extension = format.Category == FormatCategory.Audio && id != "audioToVideo" ? ".m4a" : ".mp4";
+                // Sound stays in a lossless file as it was (WAV, FLAC); everything else becomes M4A (AAC).
+                var source = Path.GetExtension(file).ToLowerInvariant();
+                var extension = format.Category == FormatCategory.Audio && id != "audioToVideo"
+                    ? source is ".wav" or ".flac" ? source : ".m4a"
+                    : ".mp4";
                 var stem = $"{i + 1}-{Path.GetFileNameWithoutExtension(file)}";
+                if (id == "videoSnapshots" && request.Times.Length > 0)
+                {
+                    // Each chosen frame, full size, named by its time.
+                    foreach (var time in request.Times.Distinct().Order())
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        var frame = Path.Combine(outputDirectory, $"{Path.GetFileNameWithoutExtension(file)} {Timecode(time)}.png");
+                        await MediaAsync(id, [file], request with { Start = time }, frame, null, ct);
+                        outputs.Add(frame);
+                    }
+                    progress?.Report((i + 1d) / files.Count);
+                    continue;
+                }
                 var output = Path.Combine(outputDirectory, stem + (id == "videoSnapshots" ? ".png" : extension));
                 if (id == "splitVideo") output = Path.Combine(outputDirectory, stem + "-%03d.mp4");
                 await MediaAsync(id, [file], request, output, progress, ct);
@@ -93,7 +110,8 @@ public static class ToolEngine
             }
             else
             {
-                var output = Path.Combine(outputDirectory, $"{i + 1}-{Path.GetFileNameWithoutExtension(file)}.png");
+                var keep = Path.GetExtension(file).ToLowerInvariant() is ".jpg" or ".jpeg" or ".png" or ".webp" ? Path.GetExtension(file).ToLowerInvariant() : ".png";
+                var output = Path.Combine(outputDirectory, $"{Path.GetFileNameWithoutExtension(file)}{keep}");
                 await Task.Run(() => EditImage(id, file, output, request, ct), ct);
                 outputs.Add(output);
             }
@@ -147,10 +165,11 @@ public static class ToolEngine
                 image.Alpha(AlphaOption.Remove);
                 break;
             case "redactImage":
-                CheckRectangle(r, image.Width, image.Height);
-                // An opaque rectangle is baked into the pixels, never a removable overlay.
-                image.Draw(new Drawables().FillColor(MagickColors.Black).StrokeColor(MagickColors.Black)
-                    .Rectangle(r.X, r.Y, r.X + r.Width - 1, r.Y + r.Height - 1));
+                foreach (var box in r.BoxList())
+                {
+                    if ((long)box.X + box.Width > image.Width || (long)box.Y + box.Height > image.Height) throw new ArgumentException("tool.error.rectangle");
+                    RedactRegion(image, box, r.Blur, r.RedactColor);
+                }
                 image.Strip();
                 break;
             case "annotateImage":
@@ -161,6 +180,26 @@ public static class ToolEngine
         }
         ct.ThrowIfCancellationRequested();
         image.Write(output);
+    }
+
+    /// <summary>
+    /// Covers a region for good: a solid colour, or pixelated into blocks a sixteenth of its size and then softened,
+    /// which no "unblur" can bring back (a plain blur of text can sometimes be reversed).
+    /// </summary>
+    private static void RedactRegion(MagickImage image, (int X, int Y, int Width, int Height) box, bool blur, string color)
+    {
+        if (!blur)
+        {
+            image.Draw(new Drawables().FillColor(new MagickColor(color)).StrokeColor(new MagickColor(color))
+                .Rectangle(box.X, box.Y, box.X + box.Width - 1, box.Y + box.Height - 1));
+            return;
+        }
+        using var part = (MagickImage)image.CloneArea(new MagickGeometry(box.X, box.Y, (uint)box.Width, (uint)box.Height));
+        var block = Math.Max(6, Math.Max(box.Width, box.Height) / 16);
+        part.Scale(new MagickGeometry((uint)Math.Max(1, box.Width / block), (uint)Math.Max(1, box.Height / block)) { IgnoreAspectRatio = true });
+        part.Scale(new MagickGeometry((uint)box.Width, (uint)box.Height) { IgnoreAspectRatio = true });
+        part.GaussianBlur(0, block / 2.0);
+        image.Composite(part, box.X, box.Y, CompositeOperator.Over);
     }
 
     private static void CheckRectangle(ToolRequest r, uint width, uint height)
@@ -183,18 +222,22 @@ public static class ToolEngine
         if (id == "videoSnapshots" && info.Duration > 0 && r.Start >= info.Duration) throw new ArgumentException("tool.error.time");
         if (id is "normalizeAudio" or "audioChannels" or "redactAudio" or "audioToVideo" && !audio)
             throw new ArgumentException("tool.error.audio");
-        if (id is "trimVideo" or "trimAudio" or "redactVideo" or "redactAudio")
-            if (info.Duration > 0 && r.End > info.Duration + .05) throw new ArgumentException("tool.error.time");
+        if (id is "trimVideo" or "trimAudio" or "redactVideo" or "redactAudio" && info.Duration > 0)
+            if (r.Ranges.Length > 0 ? r.Ranges.Any(t => t > info.Duration + .05) : r.End > info.Duration + .05)
+                throw new ArgumentException("tool.error.time");
         if (id is "redactVideo" or "cropVideo") CheckRectangle(r, (uint)info.Width, (uint)info.Height);
         string? vf = null, af = null;
         switch (id)
         {
             case "compress": args.AddRange(video ? ["-crf", "30"] : ["-b:a", "96k"]); break;
             case "removeMetadata": args.AddRange(["-map_metadata", "-1", "-map_chapters", "-1"]); break;
-            case "normalizeAudio": af = "loudnorm=I=-16:TP=-1.5:LRA=11"; break;
+            case "normalizeAudio": af = $"loudnorm=I={N(r.TargetLufs)}:TP={N(r.TruePeak)}:LRA={N(r.LoudnessRange)}"; break;
             case "muteVideo": args.Add("-an"); break;
-            case "trimVideo": case "trimAudio": args.AddRange(["-ss", N(r.Start), "-t", N(r.End - r.Start)]); break;
-            case "cropVideo": vf = $"crop={r.Width}:{r.Height}:{r.X}:{r.Y}"; break;
+            case "trimVideo": case "trimAudio":
+                args.AddRange(["-ss", N(r.Start), "-t", N(r.End - r.Start)]);
+                if (id == "trimAudio" && r.TrimSilence) af = AudioPreview.TrimSilenceFilter;
+                break;
+            case "cropVideo": vf = $"crop={r.Width / 2 * 2}:{r.Height / 2 * 2}:{r.X}:{r.Y}"; break;
             case "changeVideoSpeed":
                 vf = $"setpts=(PTS-STARTPTS)/{N(r.Speed)}";
                 if (audio)
@@ -208,14 +251,69 @@ public static class ToolEngine
                 }
                 break;
             case "videoSnapshots": args.AddRange(["-ss", N(r.Start), "-frames:v", "1"]); break;
-            case "splitVideo": args.AddRange(["-force_key_frames", $"expr:gte(t,n_forced*{N(r.End)})", "-f", "segment", "-segment_time", N(r.End), "-reset_timestamps", "1"]); break;
-            case "audioChannels": args.AddRange(["-ac", r.Channels.ToString(CultureInfo.InvariantCulture)]); break;
-            case "redactVideo": vf = $"drawbox=x={r.X}:y={r.Y}:w={r.Width}:h={r.Height}:color=black:t=fill:enable='between(t,{N(r.Start)},{N(r.End)})'"; break;
-            case "redactAudio":
-                // Gate both sources so speech is absent inside the censored interval.
-                args.AddRange(["-filter_complex", $"[0:a]volume=0:enable='between(t,{N(r.Start)},{N(r.End)})'[clean];sine=frequency=1000:sample_rate=48000:duration={N(info.Duration)}[tone];[tone]volume=0.15:enable='between(t,{N(r.Start)},{N(r.End)})',volume=0:enable='not(between(t,{N(r.Start)},{N(r.End)}))'[bleep];[clean][bleep]amix=inputs=2:duration=first:normalize=0[out]", "-map", "[out]"]);
+            case "splitVideo" when r.Times.Length > 0:
+                // Cut exactly at the chosen points: a key frame is forced at each.
+                var points = string.Join(',', r.Times.Where(t => t > 0.05 && (info.Duration <= 0 || t < info.Duration - 0.05)).Distinct().Order().Select(N));
+                if (points.Length == 0) throw new ArgumentException("tool.error.time");
+                args.AddRange(["-force_key_frames", points, "-f", "segment", "-segment_times", points, "-reset_timestamps", "1"]);
                 break;
-            case "audioToVideo": args.AddRange(["-filter_complex", "[0:a]showwaves=s=1280x720:mode=cline:colors=0xF35B28:rate=30,format=yuv420p[v]", "-map", "[v]", "-map", "0:a:0", "-shortest"]); break;
+            case "splitVideo": args.AddRange(["-force_key_frames", $"expr:gte(t,n_forced*{N(r.End)})", "-f", "segment", "-segment_time", N(r.End), "-reset_timestamps", "1"]); break;
+            case "audioChannels": af = AudioPreview.ChannelsFilter(r.Channels, r.LeftVolume, r.RightVolume); break;
+            case "redactVideo":
+            {
+                // Each box covers its own time range (the whole video without one): a solid colour, or pixelated.
+                var boxes = r.BoxList();
+                var ranges = Enumerable.Range(0, boxes.Count).Select(k => r.Ranges.Length >= 2 * (k + 1) ? (r.Ranges[2 * k], r.Ranges[2 * k + 1]) : (r.Start, r.Boxes.Length > 0 ? info.Duration + 1 : r.End)).ToList();
+                foreach (var b in boxes)
+                    if (b.X + b.Width > info.Width || b.Y + b.Height > info.Height) throw new ArgumentException("tool.error.rectangle");
+                string When(int k) => $"enable='between(t,{N(ranges[k].Item1)},{N(ranges[k].Item2)})'";
+                if (!r.Blur)
+                {
+                    var color = r.RedactColor.TrimStart('#');
+                    vf = string.Join(',', boxes.Select((b, k) => $"drawbox=x={b.X}:y={b.Y}:w={b.Width}:h={b.Height}:color=0x{color}:t=fill:{When(k)}"));
+                }
+                else
+                {
+                    var graph = new List<string> { $"[0:v]split={boxes.Count + 1}[base]" + string.Concat(Enumerable.Range(0, boxes.Count).Select(k => $"[c{k}]")) };
+                    for (var k = 0; k < boxes.Count; k++)
+                    {
+                        var b = boxes[k];
+                        var block = Math.Max(6, Math.Max(b.Width, b.Height) / 16);
+                        graph.Add($"[c{k}]crop={b.Width}:{b.Height}:{b.X}:{b.Y},scale=max(1\\,iw/{block}):max(1\\,ih/{block}),scale={b.Width}:{b.Height}:flags=neighbor,gblur=sigma={block / 2}[p{k}]");
+                    }
+                    var last = "base";
+                    for (var k = 0; k < boxes.Count; k++)
+                    {
+                        graph.Add($"[{last}][p{k}]overlay={boxes[k].X}:{boxes[k].Y}:{When(k)}[o{k}]");
+                        last = $"o{k}";
+                    }
+                    args.AddRange(["-filter_complex", string.Join(';', graph), "-map", $"[{last}]", "-map", "0:a?"]);
+                }
+                break;
+            }
+            case "redactAudio":
+                // Speech silenced and a tone in its place inside every range.
+                var bleeps = r.Ranges.Length > 0
+                    ? Enumerable.Range(0, r.Ranges.Length / 2).Select(k => (r.Ranges[2 * k], r.Ranges[2 * k + 1])).ToList()
+                    : [(r.Start, r.End)];
+                args.AddRange(["-filter_complex", "[0:a]" + AudioPreview.BleepFilter(bleeps) + "[out]", "-map", "[out]"]);
+                break;
+            case "audioToVideo":
+            {
+                var (vw, vh) = r.Shape switch { "9:16" => (720, 1280), "1:1" => (1080, 1080), _ => (1280, 720) };
+                if (r.VisualStyle == "image")
+                {
+                    // A still picture (or the whole recording's waveform as one) for as long as the sound lasts.
+                    var picture = r.ImagePath.Length > 0 && File.Exists(r.ImagePath) ? r.ImagePath : await WaveformPictureAsync(tools.Ffmpeg, files[0], vw, vh, ct);
+                    args.AddRange(["-loop", "1", "-framerate", "2", "-i", picture]);
+                    args.AddRange(["-filter_complex", $"[1:v]scale={vw}:{vh}:force_original_aspect_ratio=decrease,pad={vw}:{vh}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,format=yuv420p[v]",
+                        "-map", "[v]", "-map", "0:a:0", "-shortest", "-tune", "stillimage"]);
+                }
+                else
+                    args.AddRange(["-filter_complex", $"[0:a]showwaves=s={vw}x{vh / 2}:mode=cline:colors=0xF35B28:rate=30,pad={vw}:{vh}:0:(oh-ih)/2:color=black,format=yuv420p[v]",
+                        "-map", "[v]", "-map", "0:a:0", "-shortest"]);
+                break;
+            }
             case "joinVideos":
                 var probes = new List<MediaProbe> { info };
                 foreach (var file in files.Skip(1)) probes.Add(await ProbeAsync(tools.Ffprobe, file, ct));
@@ -246,8 +344,12 @@ public static class ToolEngine
             foreach (var file in files.Skip(1)) total += (await ProbeAsync(tools.Ffprobe, file, ct)).Duration;
         if (vf is not null) args.AddRange(["-vf", vf]);
         if (af is not null) args.AddRange(["-af", af]);
-        if (Path.GetExtension(output) == ".mp4") args.AddRange(["-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p", "-c:a", "aac"]);
-        else if (Path.GetExtension(output) == ".m4a") args.AddRange(["-vn", "-c:a", "aac"]);
+        // Cropping the picture keeps the sound exactly as it was (copied, not encoded again) when MP4 can hold it.
+        var copyAudio = id == "cropVideo" && audio && await AudioFitsMp4Async(tools.Ffprobe, files[0], ct);
+        if (Path.GetExtension(output) == ".mp4") args.AddRange(["-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p", "-c:a", copyAudio ? "copy" : "aac"]);
+        else if (Path.GetExtension(output) == ".m4a") args.AddRange(["-vn", "-c:a", "aac", "-b:a", "192k"]);
+        else if (Path.GetExtension(output) == ".wav") args.AddRange(["-vn", "-c:a", "pcm_s16le"]);
+        else if (Path.GetExtension(output) == ".flac") args.AddRange(["-vn", "-c:a", "flac"]);
         args.Add(output);
         try
         {
@@ -261,6 +363,35 @@ public static class ToolEngine
             if (File.Exists(output)) File.Delete(output);
             throw;
         }
+    }
+
+    /// <summary>The still waveform picture a visualization would use, for the tool's preview.</summary>
+    public static Task<string> WaveformPictureAsync(string file, int width, int height, CancellationToken ct) =>
+        WaveformPictureAsync(FfmpegConverter.Locate()?.Ffmpeg ?? throw new InvalidOperationException("tool.error.ffmpeg"), file, width, height, ct);
+
+    /// <summary>The waveform of the whole recording as one picture, for a still visualization.</summary>
+    internal static async Task<string> WaveformPictureAsync(string ffmpeg, string file, int width, int height, CancellationToken ct)
+    {
+        var picture = Path.Combine(Path.GetTempPath(), "dilim-previews", Guid.NewGuid().ToString("N")[..8] + "-wave.png");
+        Directory.CreateDirectory(Path.GetDirectoryName(picture)!);
+        var result = await ProcessRunner.RunAsync(ffmpeg, ["-hide_banner", "-loglevel", "error", "-nostdin", "-y", "-i", file,
+            "-filter_complex", $"showwavespic=s={width}x{height / 2}:colors=0xF35B28,pad={width}:{height}:0:(oh-ih)/2:color=black", "-frames:v", "1", picture],
+            TimeSpan.FromMinutes(5), ct);
+        if (result.ExitCode != 0) throw new InvalidOperationException(FfmpegRunner.Summarize(result.StandardError));
+        return picture;
+    }
+
+    private static async Task<bool> AudioFitsMp4Async(string probe, string file, CancellationToken ct)
+    {
+        var result = await ProcessRunner.RunAsync(probe, ["-v", "error", "-select_streams", "a:0", "-show_entries", "stream=codec_name", "-of", "csv=p=0", file], TimeSpan.FromSeconds(20), ct);
+        return result.ExitCode == 0 && result.StandardOutput.Trim() is "aac" or "mp3" or "ac3" or "eac3" or "alac" or "opus" or "flac";
+    }
+
+    /// <summary>"0-01.60" style time for file names (no colons, which Windows refuses).</summary>
+    public static string Timecode(double seconds)
+    {
+        var t = TimeSpan.FromSeconds(Math.Max(0, seconds));
+        return $"{(int)t.TotalMinutes}-{t.Seconds:00}.{t.Milliseconds / 10:00}";
     }
 
     /// <summary>Duration, streams, size and frame rate of a media file, from ffprobe.</summary>
